@@ -1,5 +1,7 @@
 package com.example.expensedesktop.controller;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
 
@@ -11,6 +13,10 @@ public class SettingsController {
     @FXML
     private void saveSettings() {
         String databasePath = databasePathField.getText();
-        // Implement saving settings logic
+        try (FileWriter writer = new FileWriter("config.properties")) {
+            writer.write("database.path=" + databasePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
