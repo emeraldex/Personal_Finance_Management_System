@@ -64,4 +64,8 @@ public class FirebaseDatabaseService {
             }
         );
     }
+
+    public void syncDataOnUserLogin() {
+        // Implement logic to sync data with Firebase when the user is logged in
+    }
 }
