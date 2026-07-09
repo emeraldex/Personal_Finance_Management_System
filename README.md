@@ -1,73 +1,67 @@
 # Personal Finance & Monthly Expense Management System
 
-## Overview
+A modular personal-finance manager with a **UI-independent core** reused by a
+JavaFX desktop app and a Jetpack Compose Android app.
 
-This system is a modular, production-quality application designed to manage personal finances and monthly expenses. It is built using Java 21, Maven, SQLite, JDBC, Jackson, JUnit 5, JavaFX, and Jetpack Compose (Android).
+## Modules
 
-## Features
+| Module            | Type                     | Status (iteration 1)                         |
+|-------------------|--------------------------|----------------------------------------------|
+| `expense-core`    | Pure Java 21 library     | **Complete & tested** (50 tests, all green)  |
+| `expense-desktop` | JavaFX (MVVM)            | Dashboard + Add-Expense screens              |
+| `expense-android` | Android / Compose (MVVM) | Dashboard + Quick-Expense screens            |
+| `documentation`   | Docs                     | Architecture, ERD, build guide               |
 
-- **Expense CRUD**: Create, read, update, and delete expenses.
-- **Income CRUD**: Create, read, update, and delete incomes.
-- **Category Management**: Manage expense and income categories.
-- **Payment Methods**: Manage payment methods for expenses and incomes.
-- **Monthly Summary**: View a summary of monthly income, expenses, net balance, savings, outstanding, category breakdown, payment method breakdown, cash flow, and budget utilization.
-- **Savings Tracking**: Track savings over time.
-- **Outstanding Tracking**: Track outstanding expenses and incomes.
-- **Dashboard Analytics**: View analytics and insights on the dashboard.
-- **Budget Management**: Manage budgets and track budget utilization.
-- **Reports**: Generate and view reports.
-- **Excel Import**: Import legacy Excel workbooks matching the existing monthly expense format.
-- **Excel Export**: Export reports back to Excel.
-- **CSV Export**: Export reports to CSV.
-- **PDF Export**: Export reports to PDF.
-- **Charts**: View charts and graphs for expenses and incomes.
-- **Cloud Synchronization**: Sync data between devices using Firebase.
-- **OCR Receipt Scanning**: Scan receipts and extract expense information using Tesseract.
-- **AI-Powered Expense Categorization**: Automatically categorize expenses using a TensorFlow model.
-- **Multi-User Support**: Support multiple users with Firebase Authentication.
+The core contains **all** business logic (domain, validation, persistence ports,
+services, analytics, reporting) and depends on no UI framework, so both front
+ends consume it unchanged.
 
-## Getting Started
+## Folder structure
 
-### Prerequisites
+```
+expense-manager/
+├── pom.xml                      # parent (reactor: expense-core, expense-desktop)
+├── expense-core/
+│   └── src/main/java/com/expense/core/
+│       ├── domain/       # immutable entities + sealed Transaction, enums
+│       ├── dto/          # request commands
+│       ├── repository/   # ports (interfaces) + JDBC/SQLite implementations
+│       ├── service/      # business services + ExpenseManager composition root
+│       ├── database/     # Database, ConnectionProvider, SchemaInitializer
+│       ├── mapper/       # ResultSet -> domain mapping
+│       ├── util/         # Money value type
+│       ├── validation/   # ValidationErrors / Validator
+│       ├── exception/    # domain exception hierarchy
+│       ├── network/      # cloud-sync / OCR / AI-categorisation seams
+│       └── report/       # analytics DTOs + CSV exporters + Excel/PDF SPI
+├── expense-desktop/
+│   └── src/main/java/com/expense/desktop/
+│       ├── ui/           # Views (scene-graph builders)
+│       ├── viewmodel/    # ViewModels (observable, headless-testable)
+│       └── AppContext, ExpenseDesktopApp
+├── expense-android/      # Gradle project (Compose)
+│   └── app/src/main/java/com/expense/android/
+│       ├── ui/ navigation/ viewmodel/ repository/
+└── documentation/
+```
 
-- Java 21
-- Maven
-- SQLite
-- Tesseract (for OCR receipt scanning)
-- TensorFlow (for AI-powered expense categorization)
-- Firebase (for cloud synchronization and multi-user support)
+## Business rules enforced by the core
 
-### Installation
+- Expenses are stored as **negative** amounts; income as **positive** amounts
+  (enforced in the domain constructors *and* by DB `CHECK` constraints).
+- Monthly summary computes: total income, total expenses, net balance, savings,
+  outstanding, category breakdown, payment-method breakdown, cash flow and
+  budget utilisation.
+- Money uses `BigDecimal` + minor-unit integer storage — no floating-point drift.
 
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/your-repo/Personal_Finance_Management_System.git
-   ```
-2. Build the project:
-   ```sh
-   cd Personal_Finance_Management_System
-   mvn clean install
-   ```
-3. Run the `expense-desktop` application:
-   ```sh
-   cd expense-desktop
-   mvn javafx:run
-   ```
-4. Run the `expense-android` application:
-   ```sh
-   cd expense-android
-  ./gradlew installDebug
-   ```
+See `documentation/` for the full architecture, ERD and build guide.
 
-## Usage
+## Roadmap (subsequent iterations)
 
-- Use the `expense-desktop` application to manage your finances on your desktop.
-- Use the `expense-android` application to manage your finances on your Android device.
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and submit a pull request.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+2. Android-SQLite implementations of the core repository ports; Excel import
+   (legacy monthly workbook) + Excel/PDF export via Apache POI / PDFBox;
+   remaining desktop screens (Income, Reports, Settings) and Android screens
+   (History, Reports, Settings).
+3. Cloud sync (`SyncClient`), OCR receipt scanning (`ReceiptScanner`),
+   ML-backed categorisation (replacing `HeuristicExpenseCategorizer`),
+   multi-user accounts. All plug into existing seams — no architectural change.
