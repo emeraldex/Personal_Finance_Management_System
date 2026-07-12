@@ -8,7 +8,7 @@ JavaFX desktop app and a Jetpack Compose Android app.
 | Module            | Type                     | Status (iteration 1)                         |
 |-------------------|--------------------------|----------------------------------------------|
 | `expense-core`    | Pure Java 21 library     | **Complete & tested** (50 tests, all green)  |
-| `expense-desktop` | JavaFX (MVVM)            | Dashboard (+month paging & CSV export), Add Expense, Add Income, History (edit/delete), Budgets, Manage |
+| `expense-desktop` | JavaFX (MVVM)            | Dashboard (month paging, CSV/Excel/PDF export), Add Expense (auto-categorise), Add Income, History (edit/delete), Budgets, Manage (archive/rename), Settings (Excel import, DB backup) |
 | `expense-android` | Android / Compose (MVVM) | Dashboard + Quick-Expense screens            |
 | `documentation`   | Docs                     | Architecture, ERD, build guide               |
 
@@ -33,7 +33,7 @@ expense-manager/
 │       ├── validation/   # ValidationErrors / Validator
 │       ├── exception/    # domain exception hierarchy
 │       ├── network/      # cloud-sync / OCR / AI-categorisation seams
-│       └── report/       # analytics DTOs + CSV exporters + Excel/PDF SPI
+│       └── report/       # analytics DTOs + CSV/Excel/PDF exporters + import SPI
 ├── expense-desktop/
 │   └── src/main/java/com/expense/desktop/
 │       ├── ui/           # Views (scene-graph builders)
@@ -58,11 +58,12 @@ See `documentation/` for the full architecture, ERD and build guide.
 
 ## Roadmap (subsequent iterations)
 
-2. Android-SQLite implementations of the core repository ports; Excel import
-   (legacy monthly workbook) + Excel/PDF export via Apache POI / PDFBox;
-   remaining desktop screen (Settings) and Android screens
-   (History, Reports, Settings). *(Desktop Income, History, Budgets and CSV
-   export shipped ahead of schedule.)*
-3. Cloud sync (`SyncClient`), OCR receipt scanning (`ReceiptScanner`),
-   ML-backed categorisation (replacing `HeuristicExpenseCategorizer`),
-   multi-user accounts. All plug into existing seams — no architectural change.
+2. Android-SQLite implementations of the core repository ports and the remaining
+   Android screens (History, Reports, Settings). *(On desktop this is done:
+   Income, History, Budgets and Settings screens, plus CSV/Excel/PDF export and
+   Excel import via Apache POI / PDFBox, are all delivered.)*
+3. Remaining seams awaiting external infrastructure: cloud sync (`SyncClient`,
+   needs a backend) and OCR receipt scanning (`ReceiptScanner`, needs an OCR
+   engine); multi-user accounts build on cloud sync. The offline
+   `HeuristicExpenseCategorizer` is now wired into the desktop Add-Expense form;
+   an ML/LLM-backed categoriser can replace it behind the same seam.

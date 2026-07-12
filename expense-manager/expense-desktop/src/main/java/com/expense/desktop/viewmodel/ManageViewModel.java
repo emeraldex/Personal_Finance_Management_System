@@ -84,6 +84,19 @@ public final class ManageViewModel {
         }
     }
 
+    /** Archives or unarchives the account, hiding/showing it in the entry pickers. */
+    public boolean toggleAccountArchived(Account account) {
+        if (account == null) {
+            return fail("Select an account to archive");
+        }
+        try {
+            manager.accounts().setArchived(account.id(), !account.archived());
+            return succeed((account.archived() ? "Unarchived " : "Archived ") + account.name());
+        } catch (ExpenseException e) {
+            return fail(e.getMessage());
+        }
+    }
+
     // ---- Categories -----------------------------------------------------
 
     public boolean createCategory(String name, CategoryType type) {
@@ -102,6 +115,35 @@ public final class ManageViewModel {
         try {
             manager.categories().delete(category.id());
             return succeed("Category deleted: " + category.name());
+        } catch (ExpenseException e) {
+            return fail(e.getMessage());
+        }
+    }
+
+    /** Renames the category, keeping its type and uniqueness rules. */
+    public boolean renameCategory(Category category, String newName) {
+        if (category == null) {
+            return fail("Select a category to rename");
+        }
+        if (newName == null || newName.isBlank()) {
+            return fail("Enter a new name");
+        }
+        try {
+            manager.categories().rename(category.id(), newName.strip());
+            return succeed("Renamed to " + newName.strip());
+        } catch (RuntimeException e) {
+            return fail(e.getMessage());
+        }
+    }
+
+    /** Archives or unarchives the category. */
+    public boolean toggleCategoryArchived(Category category) {
+        if (category == null) {
+            return fail("Select a category to archive");
+        }
+        try {
+            manager.categories().setArchived(category.id(), !category.archived());
+            return succeed((category.archived() ? "Unarchived " : "Archived ") + category.name());
         } catch (ExpenseException e) {
             return fail(e.getMessage());
         }
@@ -128,6 +170,19 @@ public final class ManageViewModel {
         } catch (ExpenseException e) {
             return fail("Cannot delete '" + method.name()
                     + "'. It may still be used by transactions — archive it instead.");
+        }
+    }
+
+    /** Archives or unarchives the payment method. */
+    public boolean togglePaymentArchived(PaymentMethod method) {
+        if (method == null) {
+            return fail("Select a payment method to archive");
+        }
+        try {
+            manager.paymentMethods().setArchived(method.id(), !method.archived());
+            return succeed((method.archived() ? "Unarchived " : "Archived ") + method.name());
+        } catch (ExpenseException e) {
+            return fail(e.getMessage());
         }
     }
 

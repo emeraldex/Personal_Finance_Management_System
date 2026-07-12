@@ -4,8 +4,11 @@ import com.expense.core.domain.Transaction;
 import com.expense.core.report.CategoryBreakdownItem;
 import com.expense.core.report.MonthlySummary;
 import com.expense.core.report.MonthlySummaryCsvExporter;
+import com.expense.core.report.PdfSummaryExporter;
+import com.expense.core.report.PoiWorkbookExporter;
 import com.expense.core.report.TransactionCsvExporter;
 import com.expense.core.service.ExpenseManager;
+import com.expense.desktop.io.TransactionWorkbookExporter;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
@@ -104,6 +107,42 @@ public final class DashboardViewModel {
         tx.addAll(manager.incomes().listByMonth(currentMonth));
         try (OutputStream out = new BufferedOutputStream(new FileOutputStream(file))) {
             new TransactionCsvExporter().export(tx, out);
+            status.set("Transactions exported to " + file.getName());
+            return true;
+        } catch (IOException e) {
+            status.set("Export failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Writes the current month's summary to {@code file} as an Excel workbook. */
+    public boolean exportSummaryXlsx(File file) {
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(file))) {
+            new PoiWorkbookExporter().export(manager.summaries().summarize(currentMonth), out);
+            status.set("Summary exported to " + file.getName());
+            return true;
+        } catch (IOException e) {
+            status.set("Export failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Writes the current month's summary to {@code file} as a PDF. */
+    public boolean exportSummaryPdf(File file) {
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(file))) {
+            new PdfSummaryExporter().export(manager.summaries().summarize(currentMonth), out);
+            status.set("Summary exported to " + file.getName());
+            return true;
+        } catch (IOException e) {
+            status.set("Export failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Writes the current month's transactions to {@code file} as an Excel workbook. */
+    public boolean exportTransactionsXlsx(File file) {
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(file))) {
+            new TransactionWorkbookExporter(manager).export(currentMonth, out);
             status.set("Transactions exported to " + file.getName());
             return true;
         } catch (IOException e) {

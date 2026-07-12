@@ -48,10 +48,11 @@ public final class IncomeFormViewModel {
         refreshLookups();
     }
 
-    /** Reloads accounts and income categories from the core. */
+    /** Reloads accounts and income categories, excluding archived ones. */
     public void refreshLookups() {
-        accounts.setAll(manager.accounts().list());
-        categories.setAll(manager.categories().listByType(CategoryType.INCOME));
+        accounts.setAll(manager.accounts().list().stream().filter(a -> !a.archived()).toList());
+        categories.setAll(manager.categories().listByType(CategoryType.INCOME).stream()
+                .filter(c -> !c.archived()).toList());
     }
 
     /**

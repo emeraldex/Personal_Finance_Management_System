@@ -11,6 +11,7 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
 
 import java.util.Objects;
@@ -41,6 +42,9 @@ public final class ExpenseView {
         ComboBox<Category> categoryBox = new ComboBox<>(vm.getCategories());
         categoryBox.valueProperty().bindBidirectional(vm.categoryProperty());
         categoryBox.setConverter(converter(c -> c == null ? "" : c.name()));
+        Button suggest = new Button("Suggest");
+        suggest.setOnAction(e -> vm.suggestCategory());
+        HBox categoryRow = new HBox(8, categoryBox, suggest);
 
         ComboBox<PaymentMethod> paymentBox = new ComboBox<>(vm.getPaymentMethods());
         paymentBox.valueProperty().bindBidirectional(vm.paymentMethodProperty());
@@ -63,7 +67,7 @@ public final class ExpenseView {
         save.setOnAction(e -> vm.save());
 
         grid.addRow(0, new Label("Account"), accountBox);
-        grid.addRow(1, new Label("Category"), categoryBox);
+        grid.addRow(1, new Label("Category"), categoryRow);
         grid.addRow(2, new Label("Payment"), paymentBox);
         grid.addRow(3, new Label("Amount"), amount);
         grid.addRow(4, new Label("Description"), description);

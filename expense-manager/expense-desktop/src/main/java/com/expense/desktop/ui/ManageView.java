@@ -79,9 +79,11 @@ public final class ManageView {
             }
         });
         Button delete = deleteButton(() -> vm.deleteAccount(table.getSelectionModel().getSelectedItem()));
+        Button archive = new Button("Archive / Unarchive");
+        archive.setOnAction(e -> vm.toggleAccountArchived(table.getSelectionModel().getSelectedItem()));
 
         HBox form = new HBox(8, name, type, opening, add);
-        return section(table, delete, form);
+        return section(table, new HBox(8, delete, archive), form);
     }
 
     // ---- Categories -----------------------------------------------------
@@ -104,9 +106,19 @@ public final class ManageView {
             }
         });
         Button delete = deleteButton(() -> vm.deleteCategory(table.getSelectionModel().getSelectedItem()));
+        Button archive = new Button("Archive / Unarchive");
+        archive.setOnAction(e -> vm.toggleCategoryArchived(table.getSelectionModel().getSelectedItem()));
+        TextField renameTo = new TextField();
+        renameTo.setPromptText("New name");
+        Button rename = new Button("Rename");
+        rename.setOnAction(e -> {
+            if (vm.renameCategory(table.getSelectionModel().getSelectedItem(), renameTo.getText())) {
+                renameTo.clear();
+            }
+        });
 
         HBox form = new HBox(8, name, type, add);
-        return section(table, delete, form);
+        return section(table, new HBox(8, delete, archive, renameTo, rename), form);
     }
 
     // ---- Payment methods ------------------------------------------------
@@ -130,15 +142,16 @@ public final class ManageView {
             }
         });
         Button delete = deleteButton(() -> vm.deletePaymentMethod(table.getSelectionModel().getSelectedItem()));
+        Button archive = new Button("Archive / Unarchive");
+        archive.setOnAction(e -> vm.togglePaymentArchived(table.getSelectionModel().getSelectedItem()));
 
         HBox form = new HBox(8, name, type, add);
-        return section(table, delete, form);
+        return section(table, new HBox(8, delete, archive), form);
     }
 
     // ---- shared building blocks ----------------------------------------
 
-    private VBox section(TableView<?> table, Button delete, HBox form) {
-        HBox actions = new HBox(8, delete);
+    private VBox section(TableView<?> table, HBox actions, HBox form) {
         VBox box = new VBox(10, table, actions, new Label("Add new:"), form);
         box.setPadding(new Insets(12));
         VBox.setVgrow(table, Priority.ALWAYS);

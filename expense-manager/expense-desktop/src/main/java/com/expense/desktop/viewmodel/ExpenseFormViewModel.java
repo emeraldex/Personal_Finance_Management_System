@@ -32,6 +32,7 @@ public final class ExpenseFormViewModel {
     private final ExpenseManager manager;
     private final Currency currency;
     private final Runnable onSaved;
+    private final java.util.function.BooleanSupplier autoCategorize;
 
     private final StringProperty amount = new SimpleStringProperty("");
     private final StringProperty description = new SimpleStringProperty("");
@@ -45,18 +46,45 @@ public final class ExpenseFormViewModel {
     private final ObservableList<Category> categories = FXCollections.observableArrayList();
     private final ObservableList<PaymentMethod> paymentMethods = FXCollections.observableArrayList();
 
-    public ExpenseFormViewModel(ExpenseManager manager, Runnable onSaved) {
+    public ExpenseFormViewModel(ExpenseManager manager, Runnable onSaved,
+                                java.util.function.BooleanSupplier autoCategorize) {
         this.manager = Objects.requireNonNull(manager);
         this.currency = manager.defaultCurrency();
         this.onSaved = onSaved == null ? () -> { } : onSaved;
+        this.autoCategorize = autoCategorize == null ? () -> false : autoCategorize;
         refreshLookups();
     }
 
-    /** Reloads accounts / expense categories / payment methods from the core. */
+    /** Reloads accounts / expense categories / payment methods, excluding archived ones. */
     public void refreshLookups() {
-        accounts.setAll(manager.accounts().list());
-        categories.setAll(manager.categories().listByType(CategoryType.EXPENSE));
-        paymentMethods.setAll(manager.paymentMethods().list());
+        accounts.setAll(manager.accounts().list().stream().filter(a -> !a.archived()).toList());
+        categories.setAll(manager.categories().listByType(CategoryType.EXPENSE).stream()
+                .filter(c -> !c.archived()).toList());
+        paymentMethods.setAll(manager.paymentMethods().list().stream()
+                .filter(p -> !p.archived()).toList());
+    }
+
+    /**
+     * Uses the core's offline categoriser to suggest and select a category from the
+     * current description. No-op with a status note when nothing is confident enough.
+     *
+     * @return {@code true} if a category was selected
+     */
+    public boolean suggestCategory() {
+        var suggestion = manager.categorizer().suggest(description.get(), categories);
+        if (suggestion.isEmpty()) {
+            status.set("No category suggestion");
+            return false;
+        }
+        long suggestedId = suggestion.get().categoryId();
+        for (Category c : categories) {
+            if (c.id() != null && c.id() == suggestedId) {
+                category.set(c);
+                status.set("Suggested category: " + c.name());
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -69,6 +97,9 @@ public final class ExpenseFormViewModel {
             if (account.get() == null) {
                 status.set("Please choose an account");
                 return false;
+            }
+            if (category.get() == null && autoCategorize.getAsBoolean()) {
+                suggestCategory();
             }
             Money money = Money.of(new BigDecimal(amount.get().trim()), currency);
             Long categoryId = category.get() == null ? null : category.get().id();

@@ -8,15 +8,16 @@ import javafx.scene.Node;
 import javafx.scene.chart.PieChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 
 import java.io.File;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * Pure View: builds the dashboard scene graph and binds every label to the
@@ -43,16 +44,17 @@ public final class DashboardView {
         next.setOnAction(e -> vm.nextMonth());
         Button today = new Button("This month");
         today.setOnAction(e -> vm.loadCurrentMonth());
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        Button exportSummary = new Button("Export summary CSV");
-        exportSummary.setOnAction(e -> saveCsv(e.getSource(), "expense-summary-" + vm.currentMonthStem(),
-                vm::exportSummaryCsv));
-        Button exportTx = new Button("Export transactions CSV");
-        exportTx.setOnAction(e -> saveCsv(e.getSource(), "expense-transactions-" + vm.currentMonthStem(),
-                vm::exportTransactionsCsv));
-        HBox toolbar = new HBox(8, prev, today, next, spacer, exportSummary, exportTx);
-        toolbar.setAlignment(Pos.CENTER_LEFT);
+        HBox pager = new HBox(8, prev, today, next);
+        pager.setAlignment(Pos.CENTER_LEFT);
+
+        FlowPane exports = new FlowPane(8, 8,
+                exportButton("Summary CSV", "expense-summary-", "csv", vm::exportSummaryCsv),
+                exportButton("Summary XLSX", "expense-summary-", "xlsx", vm::exportSummaryXlsx),
+                exportButton("Summary PDF", "expense-summary-", "pdf", vm::exportSummaryPdf),
+                exportButton("Transactions CSV", "expense-transactions-", "csv", vm::exportTransactionsCsv),
+                exportButton("Transactions XLSX", "expense-transactions-", "xlsx", vm::exportTransactionsXlsx));
+
+        VBox toolbar = new VBox(8, pager, new Label("Export current month:"), exports);
 
         HBox cards = new HBox(12,
                 card("Income", vm, "income"),
@@ -81,16 +83,22 @@ public final class DashboardView {
         return root;
     }
 
-    private void saveCsv(Object source, String suggestedName, java.util.function.Function<File, Boolean> exporter) {
-        Window window = ((Node) source).getScene().getWindow();
-        FileChooser chooser = new FileChooser();
-        chooser.setTitle("Export CSV");
-        chooser.setInitialFileName(suggestedName + ".csv");
-        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV files", "*.csv"));
-        File file = chooser.showSaveDialog(window);
-        if (file != null) {
-            exporter.apply(file);
-        }
+    private Button exportButton(String label, String stemPrefix, String ext,
+                                Function<File, Boolean> exporter) {
+        Button button = new Button(label);
+        button.setOnAction(e -> {
+            Window window = ((Node) e.getSource()).getScene().getWindow();
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle("Export " + label);
+            chooser.setInitialFileName(stemPrefix + vm.currentMonthStem() + "." + ext);
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter(ext.toUpperCase() + " files", "*." + ext));
+            File file = chooser.showSaveDialog(window);
+            if (file != null) {
+                exporter.apply(file);
+            }
+        });
+        return button;
     }
 
     private VBox card(String label, DashboardViewModel vm, String key) {
