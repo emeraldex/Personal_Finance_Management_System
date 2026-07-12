@@ -2,8 +2,10 @@ package com.expense.desktop;
 
 import com.expense.desktop.ui.DashboardView;
 import com.expense.desktop.ui.ExpenseView;
+import com.expense.desktop.ui.ManageView;
 import com.expense.desktop.viewmodel.DashboardViewModel;
 import com.expense.desktop.viewmodel.ExpenseFormViewModel;
+import com.expense.desktop.viewmodel.ManageViewModel;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -22,21 +24,29 @@ import java.util.Currency;
  */
 public final class ExpenseDesktopApp extends Application {
 
+    private static final Currency CURRENCY = Currency.getInstance("USD");
+
     @Override
     public void init() {
         String dbPath = Path.of(System.getProperty("user.home"), ".expense-manager", "expenses.db")
                 .toString();
-        AppContext.initFile(dbPath, Currency.getInstance("USD"));
+        AppContext.initFile(dbPath, CURRENCY);
+        // Give a fresh database usable starter data so the pickers are never empty.
+        DefaultData.seedIfEmpty(AppContext.manager(), CURRENCY);
     }
 
     @Override
     public void start(Stage stage) {
         DashboardViewModel dashboardVm = new DashboardViewModel(AppContext.manager());
         ExpenseFormViewModel expenseVm = new ExpenseFormViewModel(AppContext.manager());
+        // When master data changes on the Manage tab, refresh the Add-Expense pickers.
+        ManageViewModel manageVm = new ManageViewModel(
+                AppContext.manager(), CURRENCY, expenseVm::refreshLookups);
 
         TabPane tabs = new TabPane();
         tabs.getTabs().add(new Tab("Dashboard", new DashboardView(dashboardVm).build()));
         tabs.getTabs().add(new Tab("Add Expense", new ExpenseView(expenseVm, dashboardVm).build()));
+        tabs.getTabs().add(new Tab("Manage", new ManageView(manageVm).build()));
         tabs.getTabs().forEach(t -> t.setClosable(false));
 
         BorderPane root = new BorderPane(tabs);
