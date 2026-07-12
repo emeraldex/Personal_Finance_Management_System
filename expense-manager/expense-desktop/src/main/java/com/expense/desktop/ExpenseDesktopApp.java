@@ -1,10 +1,16 @@
 package com.expense.desktop;
 
+import com.expense.desktop.ui.BudgetView;
 import com.expense.desktop.ui.DashboardView;
 import com.expense.desktop.ui.ExpenseView;
+import com.expense.desktop.ui.HistoryView;
+import com.expense.desktop.ui.IncomeView;
 import com.expense.desktop.ui.ManageView;
+import com.expense.desktop.viewmodel.BudgetViewModel;
 import com.expense.desktop.viewmodel.DashboardViewModel;
 import com.expense.desktop.viewmodel.ExpenseFormViewModel;
+import com.expense.desktop.viewmodel.HistoryViewModel;
+import com.expense.desktop.viewmodel.IncomeFormViewModel;
 import com.expense.desktop.viewmodel.ManageViewModel;
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -37,15 +43,38 @@ public final class ExpenseDesktopApp extends Application {
 
     @Override
     public void start(Stage stage) {
-        DashboardViewModel dashboardVm = new DashboardViewModel(AppContext.manager());
-        ExpenseFormViewModel expenseVm = new ExpenseFormViewModel(AppContext.manager());
-        // When master data changes on the Manage tab, refresh the Add-Expense pickers.
-        ManageViewModel manageVm = new ManageViewModel(
-                AppContext.manager(), CURRENCY, expenseVm::refreshLookups);
+        var manager = AppContext.manager();
+        // A holder breaks the construction cycle: the read VMs need the shared
+        // refresh, and the refresh needs the read VMs. It is assigned before any
+        // user action can fire it.
+        final Runnable[] refreshHolder = new Runnable[1];
+        Runnable refreshAll = () -> refreshHolder[0].run();
+
+        DashboardViewModel dashboardVm = new DashboardViewModel(manager);
+        HistoryViewModel historyVm = new HistoryViewModel(manager, refreshAll);
+        BudgetViewModel budgetVm = new BudgetViewModel(manager, refreshAll);
+
+        // Any transaction change refreshes the read screens (dashboard, history, budgets).
+        refreshHolder[0] = () -> {
+            dashboardVm.reload();
+            historyVm.reload();
+            budgetVm.reload();
+        };
+
+        ExpenseFormViewModel expenseVm = new ExpenseFormViewModel(manager, refreshAll);
+        IncomeFormViewModel incomeVm = new IncomeFormViewModel(manager, refreshAll);
+        // When master data changes on the Manage tab, refresh the entry-form pickers.
+        ManageViewModel manageVm = new ManageViewModel(manager, CURRENCY, () -> {
+            expenseVm.refreshLookups();
+            incomeVm.refreshLookups();
+        });
 
         TabPane tabs = new TabPane();
         tabs.getTabs().add(new Tab("Dashboard", new DashboardView(dashboardVm).build()));
-        tabs.getTabs().add(new Tab("Add Expense", new ExpenseView(expenseVm, dashboardVm).build()));
+        tabs.getTabs().add(new Tab("Add Expense", new ExpenseView(expenseVm).build()));
+        tabs.getTabs().add(new Tab("Add Income", new IncomeView(incomeVm).build()));
+        tabs.getTabs().add(new Tab("History", new HistoryView(historyVm).build()));
+        tabs.getTabs().add(new Tab("Budgets", new BudgetView(budgetVm).build()));
         tabs.getTabs().add(new Tab("Manage", new ManageView(manageVm).build()));
         tabs.getTabs().forEach(t -> t.setClosable(false));
 

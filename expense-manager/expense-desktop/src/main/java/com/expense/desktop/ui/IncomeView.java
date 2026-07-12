@@ -2,8 +2,7 @@ package com.expense.desktop.ui;
 
 import com.expense.core.domain.Account;
 import com.expense.core.domain.Category;
-import com.expense.core.domain.PaymentMethod;
-import com.expense.desktop.viewmodel.ExpenseFormViewModel;
+import com.expense.desktop.viewmodel.IncomeFormViewModel;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -16,15 +15,14 @@ import javafx.util.StringConverter;
 import java.util.Objects;
 
 /**
- * Pure View for adding an expense. Binds inputs to {@link ExpenseFormViewModel}
- * and, on a successful save, asks the {@link DashboardViewModel} to refresh so
- * the dashboard reflects the new entry immediately.
+ * Pure View for adding an income entry. Binds inputs to {@link IncomeFormViewModel};
+ * the ViewModel refreshes dependent screens itself on a successful save.
  */
-public final class ExpenseView {
+public final class IncomeView {
 
-    private final ExpenseFormViewModel vm;
+    private final IncomeFormViewModel vm;
 
-    public ExpenseView(ExpenseFormViewModel vm) {
+    public IncomeView(IncomeFormViewModel vm) {
         this.vm = Objects.requireNonNull(vm);
     }
 
@@ -42,13 +40,9 @@ public final class ExpenseView {
         categoryBox.valueProperty().bindBidirectional(vm.categoryProperty());
         categoryBox.setConverter(converter(c -> c == null ? "" : c.name()));
 
-        ComboBox<PaymentMethod> paymentBox = new ComboBox<>(vm.getPaymentMethods());
-        paymentBox.valueProperty().bindBidirectional(vm.paymentMethodProperty());
-        paymentBox.setConverter(converter(p -> p == null ? "" : p.name()));
-
         TextField amount = new TextField();
         amount.textProperty().bindBidirectional(vm.amountProperty());
-        amount.setPromptText("e.g. 42.50");
+        amount.setPromptText("e.g. 3000.00");
 
         TextField description = new TextField();
         description.textProperty().bindBidirectional(vm.descriptionProperty());
@@ -59,16 +53,15 @@ public final class ExpenseView {
         Label status = new Label();
         status.textProperty().bind(vm.statusProperty());
 
-        Button save = new Button("Save expense");
+        Button save = new Button("Save income");
         save.setOnAction(e -> vm.save());
 
         grid.addRow(0, new Label("Account"), accountBox);
         grid.addRow(1, new Label("Category"), categoryBox);
-        grid.addRow(2, new Label("Payment"), paymentBox);
-        grid.addRow(3, new Label("Amount"), amount);
-        grid.addRow(4, new Label("Description"), description);
-        grid.addRow(5, new Label("Date"), date);
-        grid.addRow(6, save, status);
+        grid.addRow(2, new Label("Amount"), amount);
+        grid.addRow(3, new Label("Description"), description);
+        grid.addRow(4, new Label("Date"), date);
+        grid.addRow(5, save, status);
         return grid;
     }
 

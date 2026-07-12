@@ -8,7 +8,7 @@ JavaFX desktop app and a Jetpack Compose Android app.
 | Module            | Type                     | Status (iteration 1)                         |
 |-------------------|--------------------------|----------------------------------------------|
 | `expense-core`    | Pure Java 21 library     | **Complete & tested** (50 tests, all green)  |
-| `expense-desktop` | JavaFX (MVVM)            | Dashboard + Add-Expense screens              |
+| `expense-desktop` | JavaFX (MVVM)            | Dashboard (+month paging & CSV export), Add Expense, Add Income, History (edit/delete), Budgets, Manage |
 | `expense-android` | Android / Compose (MVVM) | Dashboard + Quick-Expense screens            |
 | `documentation`   | Docs                     | Architecture, ERD, build guide               |
 
@@ -60,8 +60,9 @@ See `documentation/` for the full architecture, ERD and build guide.
 
 2. Android-SQLite implementations of the core repository ports; Excel import
    (legacy monthly workbook) + Excel/PDF export via Apache POI / PDFBox;
-   remaining desktop screens (Income, Reports, Settings) and Android screens
-   (History, Reports, Settings).
+   remaining desktop screen (Settings) and Android screens
+   (History, Reports, Settings). *(Desktop Income, History, Budgets and CSV
+   export shipped ahead of schedule.)*
 3. Cloud sync (`SyncClient`), OCR receipt scanning (`ReceiptScanner`),
    ML-backed categorisation (replacing `HeuristicExpenseCategorizer`),
    multi-user accounts. All plug into existing seams — no architectural change.
