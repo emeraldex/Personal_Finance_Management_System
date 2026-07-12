@@ -24,7 +24,7 @@ import java.util.Currency;
  */
 public final class ExpenseDesktopApp extends Application {
 
-    private static final Currency CURRENCY = Currency.getInstance("USD");
+    private static final Currency CURRENCY = Currency.getInstance("MYR");
 
     @Override
     public void init() {

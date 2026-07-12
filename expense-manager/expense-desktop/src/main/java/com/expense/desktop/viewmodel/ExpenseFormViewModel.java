@@ -46,7 +46,7 @@ public final class ExpenseFormViewModel {
 
     public ExpenseFormViewModel(ExpenseManager manager) {
         this.manager = Objects.requireNonNull(manager);
-        this.currency = Currency.getInstance("USD");
+        this.currency = manager.defaultCurrency();
         refreshLookups();
     }
 
