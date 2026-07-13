@@ -4,4 +4,7 @@
 plugins {
     id("com.android.application") version "8.5.0" apply false
     id("org.jetbrains.kotlin.android") version "2.0.0" apply false
+    // Required from Kotlin 2.0 when Compose is enabled (replaces the old
+    // composeOptions { kotlinCompilerExtensionVersion } configuration).
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0" apply false
 }

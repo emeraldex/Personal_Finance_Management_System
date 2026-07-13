@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-desktop:
+    name: Core & Desktop (Maven)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # Builds expense-core and expense-desktop in one reactor pass and runs the
+      # core unit tests. Does NOT run jpackage — installers are produced manually
+      # or by a separate packaging workflow (see DEPLOYMENT.md §7).
+      - name: Build & test core + desktop
+        working-directory: expense-manager
+        run: mvn -B -pl expense-core,expense-desktop -am package
+
+      - name: Upload shaded desktop jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: expense-desktop-shaded-jar
+          path: expense-manager/expense-desktop/target/expense-desktop-1.0.0-shaded.jar
+          if-no-files-found: error
+
+  android:
+    name: Android (Gradle)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # Confirms the committed gradle-wrapper.jar matches a Gradle-published hash.
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      # The Android app references ../../expense-core/target/expense-core-1.0.0.jar
+      # by path, so the core jar must exist before the Gradle build runs.
+      - name: Build the core jar consumed by the app
+        working-directory: expense-manager
+        run: mvn -B -pl expense-core -am package
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble debug APK
+        working-directory: expense-manager/expense-android
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: expense-android-debug-apk
+          path: expense-manager/expense-android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn

@@ -1,2 +1,13 @@
+# Desktop packaging output
 expense-manager/installers/
 expense-manager/dist/
+expense-manager/**/dependency-reduced-pom.xml
+
+# Maven
+expense-manager/**/target/
+
+# Gradle / Android
+expense-manager/expense-android/.gradle/
+expense-manager/expense-android/build/
+expense-manager/expense-android/app/build/
+expense-manager/expense-android/local.properties

@@ -1,0 +1,16 @@
+# Normalise text by default; let Git detect.
+* text=auto
+
+# The Gradle wrapper script must stay LF so it runs on Linux/macOS/CI.
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Windows scripts stay CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary artefacts — never touch line endings.
+*.jar binary
+*.ico binary
+*.icns binary
+*.png binary
