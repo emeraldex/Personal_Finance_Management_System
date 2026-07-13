@@ -1,6 +1,7 @@
 package com.expense.core.service;
 
 import com.expense.core.database.Database;
+import com.expense.core.exception.PersistenceException;
 import com.expense.core.network.ExpenseCategorizer;
 import com.expense.core.network.HeuristicExpenseCategorizer;
 import com.expense.core.repository.AccountRepository;
@@ -45,7 +46,7 @@ import java.util.Objects;
  */
 public final class ExpenseManager implements AutoCloseable {
 
-    private final Database database;
+    private final AutoCloseable closer;
     private final Currency defaultCurrency;
 
     private final CategoryService categoryService;
@@ -67,19 +68,32 @@ public final class ExpenseManager implements AutoCloseable {
      * @param defaultCurrency currency used when a month has no transactions to infer one from
      */
     public ExpenseManager(Database database, Currency defaultCurrency) {
-        this.database = Objects.requireNonNull(database, "database");
+        this(new JdbcCategoryRepository(Objects.requireNonNull(database, "database")),
+                new JdbcPaymentMethodRepository(database),
+                new JdbcAccountRepository(database),
+                new JdbcExpenseRepository(database),
+                new JdbcIncomeRepository(database),
+                new JdbcBudgetRepository(database),
+                new JdbcMonthlySummaryRepository(database),
+                defaultCurrency,
+                database);
+    }
+
+    /**
+     * Dependency-injection constructor: wires the services over pre-built repository
+     * ports. This is the seam a non-JDBC front end uses — the Android app supplies
+     * {@code android.database.sqlite}-backed adapters here so the exact same services
+     * and analytics run on mobile without a JDBC driver.
+     *
+     * @param closer released by {@link #close()} (e.g. the underlying database); may be {@code null}
+     */
+    public ExpenseManager(CategoryRepository categories, PaymentMethodRepository paymentMethods,
+                          AccountRepository accounts, ExpenseRepository expenses,
+                          IncomeRepository incomes, BudgetRepository budgets,
+                          MonthlySummaryRepository summaries, Currency defaultCurrency,
+                          AutoCloseable closer) {
         this.defaultCurrency = Objects.requireNonNull(defaultCurrency, "defaultCurrency");
-
-        // Repositories (share the single connection provider).
-        CategoryRepository categories = new JdbcCategoryRepository(database);
-        PaymentMethodRepository paymentMethods = new JdbcPaymentMethodRepository(database);
-        AccountRepository accounts = new JdbcAccountRepository(database);
-        ExpenseRepository expenses = new JdbcExpenseRepository(database);
-        IncomeRepository incomes = new JdbcIncomeRepository(database);
-        BudgetRepository budgets = new JdbcBudgetRepository(database);
-        MonthlySummaryRepository summaries = new JdbcMonthlySummaryRepository(database);
-
-        // Services (business logic; UI-independent).
+        this.closer = closer;
         this.categoryService = new CategoryService(categories);
         this.paymentMethodService = new PaymentMethodService(paymentMethods);
         this.accountService = new AccountService(accounts);
@@ -148,6 +162,15 @@ public final class ExpenseManager implements AutoCloseable {
 
     @Override
     public void close() {
-        database.close();
+        if (closer == null) {
+            return;
+        }
+        try {
+            closer.close();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new PersistenceException("Failed to close database", e);
+        }
     }
 }

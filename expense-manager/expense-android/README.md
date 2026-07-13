@@ -7,17 +7,20 @@ Jetpack Compose (MVVM) client for the Personal Finance system. It **reuses**
 - ViewModels depend on `repository.FinanceRepository` (a narrow, UI-shaped port).
 - `repository.CoreFinanceRepository` implements that port by delegating to the
   core `ExpenseManager` services — no rules are duplicated on the client.
-- `data.CoreProvider` builds the `ExpenseManager` by opening the core's
-  JDBC/SQLite database against a file in the app's private storage, and
-  `MainActivity` wires `CoreProvider → CoreFinanceRepository → ViewModels →
-  navigation` (with a small first-run bootstrap that seeds a default account and
-  categories).
-- **On-device data-layer caveat:** the desktop-oriented `sqlite-jdbc` artifact
-  bundles native binaries for desktop OSes, not Android ABIs. Running on a
-  physical device therefore requires either an Android-compatible SQLite-JDBC
-  build or the native-SQLite adapters that implement the core `*Repository`
-  ports directly (iteration 2). Either way the same `ExpenseService` /
-  `MonthlySummaryService` run unchanged — only the persistence adapter differs.
+- `data.CoreProvider` builds the `ExpenseManager` from **`android.database.sqlite`
+  adapters** (`data.Android*Repository`, implementing the core repository ports),
+  opening a database file in the app's private storage. `MainActivity` wires
+  `CoreProvider → CoreFinanceRepository → ViewModels → navigation` (with a small
+  first-run bootstrap that seeds a default account and categories).
+- **On-device persistence (resolved):** the app uses no JDBC driver. The seven
+  `Android*Repository` adapters run the exact same SQL and share the same
+  `db/schema.sql` (loaded from the core jar) as the desktop JDBC build, and
+  `ExpenseManager`'s dependency-injection constructor accepts them — so the same
+  `ExpenseService` / `MonthlySummaryService` / analytics run on device, only the
+  storage adapter differs. Upserts avoid `ON CONFLICT`/`RETURNING` (a read-then-
+  write instead) to support older Android SQLite. The adapters are verified by a
+  Robolectric test (`app/src/test/.../AndroidPersistenceTest`) that exercises the
+  full stack against real Android SQLite on the JVM — no emulator needed.
 
 ## Screens & wiring
 - `MainActivity` (single-activity Compose host) builds the object graph and hosts
@@ -44,9 +47,9 @@ core jar it consumes first, then assemble the app:
 ```bash
 # 1. from expense-manager/: publish the core jar the app references
 mvn -pl expense-core -am install
-# 2. from expense-android/: build the debug APK (needs local.properties -> sdk.dir,
-#    or ANDROID_HOME set, and a Gradle wrapper / installed Gradle)
-gradle :app:assembleDebug        # or: ./gradlew :app:assembleDebug
+# 2. from expense-android/: build the debug APK and run the SQLite adapter tests
+#    (needs local.properties -> sdk.dir, or ANDROID_HOME set)
+./gradlew :app:assembleDebug :app:testDebugUnitTest
 ```
 
 - **R8 / minify note:** the consumed `expense-core-1.0.0.jar` also contains the
@@ -60,6 +63,6 @@ gradle :app:assembleDebug        # or: ./gradlew :app:assembleDebug
   -dontwarn org.apache.pdfbox.**
   -dontwarn org.apache.xmlbeans.**
   ```
-- The on-device `sqlite-jdbc` caveat above still applies: the app compiles and
-  packages, but running the JDBC-backed core on a physical device/emulator needs
-  an Android-compatible SQLite adapter (iteration 2).
+- On-device persistence is done: the app uses `android.database.sqlite` adapters
+  (no JDBC driver), so it runs on a real device/emulator. See "On-device
+  persistence (resolved)" above.

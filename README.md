@@ -58,14 +58,13 @@ See `documentation/` for the full architecture, ERD and build guide.
 
 ## Roadmap (subsequent iterations)
 
-2. Android-SQLite implementations of the core repository ports. *(The Android
-   screens — Dashboard, Add Expense/Income, History, Reports and Settings — are
-   now delivered with bottom navigation. On desktop this iteration is also done:
-   Income, History, Budgets and Settings screens, plus CSV/Excel/PDF export and
-   Excel import via Apache POI / PDFBox.)* The remaining Android work is the
-   on-device persistence adapter: the desktop `sqlite-jdbc` artifact bundles
-   desktop-OS natives, so a physical device needs an Android-compatible SQLite
-   build or native `*Repository` adapters — the same core services run unchanged.
+2. **Done.** Android now has `android.database.sqlite` implementations of the
+   core repository ports (`Android*Repository`), so it runs on a real device with
+   no JDBC driver; the screens (Dashboard, Add Expense/Income, History, Reports,
+   Settings) ship with bottom navigation. On desktop: Income, History, Budgets and
+   Settings screens, plus CSV/Excel/PDF export and Excel import via Apache POI /
+   PDFBox. `ExpenseManager` gained a DI constructor so either persistence adapter
+   (JDBC on desktop, SQLite on Android) plugs into the same services unchanged.
 3. Remaining seams awaiting external infrastructure: cloud sync (`SyncClient`,
    needs a backend) and OCR receipt scanning (`ReceiptScanner`, needs an OCR
    engine); multi-user accounts build on cloud sync. The offline

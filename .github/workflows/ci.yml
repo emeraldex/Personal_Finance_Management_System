@@ -69,9 +69,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Assemble debug APK
+      - name: Assemble debug APK and run SQLite adapter tests
         working-directory: expense-manager/expense-android
-        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        run: ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon --stacktrace
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
