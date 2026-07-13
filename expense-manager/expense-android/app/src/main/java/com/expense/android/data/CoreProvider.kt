@@ -26,7 +26,7 @@ object CoreProvider {
 
     private fun create(context: Context): ExpenseManager {
         val dbFile = File(context.filesDir, "expenses.db")
-        return ExpenseManager.openFile(dbFile.absolutePath, Currency.getInstance("USD"))
+        return ExpenseManager.openFile(dbFile.absolutePath, Currency.getInstance("MYR"))
     }
 
     fun shutdown() {

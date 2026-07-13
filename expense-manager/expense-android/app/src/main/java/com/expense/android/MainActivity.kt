@@ -13,13 +13,16 @@ import com.expense.android.navigation.AppNavigation
 import com.expense.android.repository.CoreFinanceRepository
 import com.expense.android.repository.FinanceRepository
 import com.expense.android.viewmodel.DashboardViewModel
+import com.expense.android.viewmodel.HistoryViewModel
 import com.expense.android.viewmodel.QuickEntryViewModel
+import com.expense.android.viewmodel.ReportsViewModel
 import com.expense.core.domain.AccountType
 import com.expense.core.domain.CategoryType
 import com.expense.core.dto.CreateAccountRequest
 import com.expense.core.dto.CreateCategoryRequest
 import com.expense.core.service.ExpenseManager
 import com.expense.core.util.Money
+import java.io.File
 import java.util.Currency
 
 /**
@@ -31,21 +34,33 @@ import java.util.Currency
  */
 class MainActivity : ComponentActivity() {
 
+    private val currency: Currency = Currency.getInstance("MYR")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val manager = CoreProvider.get(applicationContext)
         val defaultAccountId = bootstrap(manager)
-        val repository: FinanceRepository = CoreFinanceRepository(manager)
+        val repository: FinanceRepository = CoreFinanceRepository(manager, currency)
         val factory = FinanceViewModelFactory(repository)
+        val storagePath = File(applicationContext.filesDir, "expenses.db").absolutePath
 
         setContent {
             MaterialTheme {
                 Surface {
                     val dashboardVm: DashboardViewModel = viewModel(factory = factory)
                     val quickVm: QuickEntryViewModel = viewModel(factory = factory)
-                    dashboardVm.load()
-                    AppNavigation(dashboardVm, quickVm, defaultAccountId)
+                    val historyVm: HistoryViewModel = viewModel(factory = factory)
+                    val reportsVm: ReportsViewModel = viewModel(factory = factory)
+                    AppNavigation(
+                        dashboardViewModel = dashboardVm,
+                        quickEntryViewModel = quickVm,
+                        historyViewModel = historyVm,
+                        reportsViewModel = reportsVm,
+                        defaultAccountId = defaultAccountId,
+                        currencyCode = currency.currencyCode,
+                        storagePath = storagePath,
+                    )
                 }
             }
         }
@@ -56,13 +71,14 @@ class MainActivity : ComponentActivity() {
         val accounts = manager.accounts().list()
         val accountId = if (accounts.isEmpty()) {
             manager.accounts().create(
-                CreateAccountRequest("Cash", AccountType.CASH, Money.zero(Currency.getInstance("USD")))
+                CreateAccountRequest("Cash", AccountType.CASH, Money.zero(currency))
             ).id()
         } else {
             accounts.first().id()
         }
         if (manager.categories().list().isEmpty()) {
             manager.categories().create(CreateCategoryRequest("Groceries", CategoryType.EXPENSE, "#4CAF50", "cart"))
+            manager.categories().create(CreateCategoryRequest("Transport", CategoryType.EXPENSE, "#FF9800", "car"))
             manager.categories().create(CreateCategoryRequest("Salary", CategoryType.INCOME, "#2196F3", "wallet"))
         }
         return accountId
@@ -91,6 +107,10 @@ class FinanceViewModelFactory(
                 DashboardViewModel(repository) as T
             modelClass.isAssignableFrom(QuickEntryViewModel::class.java) ->
                 QuickEntryViewModel(repository) as T
+            modelClass.isAssignableFrom(HistoryViewModel::class.java) ->
+                HistoryViewModel(repository) as T
+            modelClass.isAssignableFrom(ReportsViewModel::class.java) ->
+                ReportsViewModel(repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
         }
     }

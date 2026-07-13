@@ -9,7 +9,7 @@ JavaFX desktop app and a Jetpack Compose Android app.
 |-------------------|--------------------------|----------------------------------------------|
 | `expense-core`    | Pure Java 21 library     | **Complete & tested** (50 tests, all green)  |
 | `expense-desktop` | JavaFX (MVVM)            | Dashboard (month paging, CSV/Excel/PDF export), Add Expense (auto-categorise), Add Income, History (edit/delete), Budgets, Manage (archive/rename), Settings (Excel import, DB backup) |
-| `expense-android` | Android / Compose (MVVM) | Dashboard + Quick-Expense screens            |
+| `expense-android` | Android / Compose (MVVM) | Dashboard, Add Expense/Income, History (delete), Reports (budgets), Settings — bottom-nav |
 | `documentation`   | Docs                     | Architecture, ERD, build guide               |
 
 The core contains **all** business logic (domain, validation, persistence ports,
@@ -58,10 +58,14 @@ See `documentation/` for the full architecture, ERD and build guide.
 
 ## Roadmap (subsequent iterations)
 
-2. Android-SQLite implementations of the core repository ports and the remaining
-   Android screens (History, Reports, Settings). *(On desktop this is done:
+2. Android-SQLite implementations of the core repository ports. *(The Android
+   screens — Dashboard, Add Expense/Income, History, Reports and Settings — are
+   now delivered with bottom navigation. On desktop this iteration is also done:
    Income, History, Budgets and Settings screens, plus CSV/Excel/PDF export and
-   Excel import via Apache POI / PDFBox, are all delivered.)*
+   Excel import via Apache POI / PDFBox.)* The remaining Android work is the
+   on-device persistence adapter: the desktop `sqlite-jdbc` artifact bundles
+   desktop-OS natives, so a physical device needs an Android-compatible SQLite
+   build or native `*Repository` adapters — the same core services run unchanged.
 3. Remaining seams awaiting external infrastructure: cloud sync (`SyncClient`,
    needs a backend) and OCR receipt scanning (`ReceiptScanner`, needs an OCR
    engine); multi-user accounts build on cloud sync. The offline

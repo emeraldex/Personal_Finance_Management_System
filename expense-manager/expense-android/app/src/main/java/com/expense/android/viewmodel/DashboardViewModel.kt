@@ -31,11 +31,15 @@ class DashboardViewModel(
     private val _state = MutableStateFlow(DashboardUiState())
     val state: StateFlow<DashboardUiState> = _state.asStateFlow()
 
-    fun load(month: YearMonth = YearMonth.now()) {
+    fun load(month: YearMonth = _state.value.month) {
         _state.value = _state.value.copy(loading = true, month = month)
         viewModelScope.launch {
             val summary = withContext(Dispatchers.IO) { repository.monthlySummary(month) }
             _state.value = DashboardUiState(month = month, summary = summary, loading = false)
         }
     }
+
+    fun nextMonth() = load(_state.value.month.plusMonths(1))
+
+    fun prevMonth() = load(_state.value.month.minusMonths(1))
 }

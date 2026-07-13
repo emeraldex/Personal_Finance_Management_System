@@ -7,24 +7,24 @@ import androidx.compose.runtime.getValue
 import com.expense.android.viewmodel.QuickEntryViewModel
 
 /**
- * Quick Expense entry. Delegates to the shared core through [QuickEntryViewModel]
- * and the reusable [EntryForm]; [accountId] is the user's default account.
+ * Quick Income entry. Mirrors [QuickExpenseScreen] but targets income categories
+ * and the income service via the shared [QuickEntryViewModel] and [EntryForm].
  */
 @Composable
-fun QuickExpenseScreen(viewModel: QuickEntryViewModel, accountId: Long) {
+fun QuickIncomeScreen(viewModel: QuickEntryViewModel, accountId: Long) {
     val status by viewModel.status.collectAsState()
     val options by viewModel.options.collectAsState()
     LaunchedEffect(Unit) { viewModel.loadOptions() }
 
     EntryForm(
-        title = "Add expense",
+        title = "Add income",
         accounts = options.accounts,
-        categories = options.expenseCategories,
+        categories = options.incomeCategories,
         defaultAccountId = accountId,
         status = status,
-        submitLabel = "Save expense",
+        submitLabel = "Save income",
         onSubmit = { acct, category, amount, description ->
-            viewModel.addExpense(acct, category, amount, description)
+            viewModel.addIncome(acct, category, amount, description)
         },
     )
 }

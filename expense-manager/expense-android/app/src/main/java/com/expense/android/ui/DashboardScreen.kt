@@ -12,10 +12,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.expense.android.ui.components.MonthPager
 import com.expense.android.viewmodel.DashboardViewModel
 
 /**
@@ -25,9 +27,11 @@ import com.expense.android.viewmodel.DashboardViewModel
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel) {
     val state by viewModel.state.collectAsState()
+    LaunchedEffect(Unit) { viewModel.load() }
 
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("${state.month} overview", style = MaterialTheme.typography.headlineSmall)
+        MonthPager(state.month, onPrev = viewModel::prevMonth, onNext = viewModel::nextMonth)
 
         if (state.loading) {
             CircularProgressIndicator()
