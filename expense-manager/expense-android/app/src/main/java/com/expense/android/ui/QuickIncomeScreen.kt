@@ -9,6 +9,7 @@ import com.expense.android.viewmodel.QuickEntryViewModel
 /**
  * Quick Income entry. Mirrors [QuickExpenseScreen] but targets income categories
  * and the income service via the shared [QuickEntryViewModel] and [EntryForm].
+ * Income has no payment method and no categoriser suggestion.
  */
 @Composable
 fun QuickIncomeScreen(viewModel: QuickEntryViewModel, accountId: Long) {
@@ -20,11 +21,14 @@ fun QuickIncomeScreen(viewModel: QuickEntryViewModel, accountId: Long) {
         title = "Add income",
         accounts = options.accounts,
         categories = options.incomeCategories,
+        paymentMethods = emptyList(),
         defaultAccountId = accountId,
         status = status,
         submitLabel = "Save income",
-        onSubmit = { acct, category, amount, description ->
-            viewModel.addIncome(acct, category, amount, description)
+        hint = null,
+        onDescriptionChanged = {},
+        onSubmit = { acct, category, _, amount, description, date ->
+            viewModel.addIncome(acct, category, amount, description, date)
         },
     )
 }

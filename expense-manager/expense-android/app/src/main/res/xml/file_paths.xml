@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Exposes only the app's private cache/exports directory to the FileProvider, so
+  a shared CSV can be read by the receiving app without exposing anything else.
+-->
+<paths>
+    <cache-path name="exports" path="exports/" />
+</paths>
