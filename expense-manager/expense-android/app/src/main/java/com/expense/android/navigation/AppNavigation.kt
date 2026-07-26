@@ -16,14 +16,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.expense.android.ui.DashboardScreen
 import com.expense.android.ui.HistoryScreen
+import com.expense.android.ui.ManageScreen
 import com.expense.android.ui.QuickExpenseScreen
 import com.expense.android.ui.QuickIncomeScreen
 import com.expense.android.ui.ReportsScreen
 import com.expense.android.ui.SettingsScreen
 import com.expense.android.viewmodel.DashboardViewModel
 import com.expense.android.viewmodel.HistoryViewModel
+import com.expense.android.viewmodel.ManageViewModel
 import com.expense.android.viewmodel.QuickEntryViewModel
 import com.expense.android.viewmodel.ReportsViewModel
+import com.expense.android.viewmodel.SettingsViewModel
 
 /** A bottom-navigation destination: route, label and an emoji used as the icon. */
 private data class Destination(val route: String, val label: String, val icon: String)
@@ -36,6 +39,9 @@ object Routes {
     const val HISTORY = "history"
     const val REPORTS = "reports"
     const val SETTINGS = "settings"
+
+    /** Reached from Settings rather than the bottom bar, which is already full. */
+    const val MANAGE = "manage"
 }
 
 private val DESTINATIONS = listOf(
@@ -49,8 +55,9 @@ private val DESTINATIONS = listOf(
 
 /**
  * Compose navigation graph with a bottom navigation bar wiring every screen:
- * Dashboard, Add Expense, Add Income, History, Reports and Settings. Each screen
- * hosts a View bound to its ViewModel (MVVM); screens never touch persistence.
+ * Dashboard, Add Expense, Add Income, History, Reports and Settings, plus a
+ * Manage screen reached from Settings. Each screen hosts a View bound to its
+ * ViewModel (MVVM); screens never touch persistence.
  */
 @Composable
 fun AppNavigation(
@@ -58,6 +65,8 @@ fun AppNavigation(
     quickEntryViewModel: QuickEntryViewModel,
     historyViewModel: HistoryViewModel,
     reportsViewModel: ReportsViewModel,
+    manageViewModel: ManageViewModel,
+    settingsViewModel: SettingsViewModel,
     defaultAccountId: Long,
     currencyCode: String,
     storagePath: String,
@@ -96,7 +105,15 @@ fun AppNavigation(
             composable(Routes.QUICK_INCOME) { QuickIncomeScreen(quickEntryViewModel, defaultAccountId) }
             composable(Routes.HISTORY) { HistoryScreen(historyViewModel) }
             composable(Routes.REPORTS) { ReportsScreen(reportsViewModel) }
-            composable(Routes.SETTINGS) { SettingsScreen(currencyCode, storagePath) }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(
+                    viewModel = settingsViewModel,
+                    currencyCode = currencyCode,
+                    storagePath = storagePath,
+                    onManage = { nav.navigate(Routes.MANAGE) },
+                )
+            }
+            composable(Routes.MANAGE) { ManageScreen(manageViewModel) }
         }
     }
 }

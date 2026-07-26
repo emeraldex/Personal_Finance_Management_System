@@ -14,12 +14,16 @@ import com.expense.android.repository.CoreFinanceRepository
 import com.expense.android.repository.FinanceRepository
 import com.expense.android.viewmodel.DashboardViewModel
 import com.expense.android.viewmodel.HistoryViewModel
+import com.expense.android.viewmodel.ManageViewModel
 import com.expense.android.viewmodel.QuickEntryViewModel
 import com.expense.android.viewmodel.ReportsViewModel
+import com.expense.android.viewmodel.SettingsViewModel
 import com.expense.core.domain.AccountType
 import com.expense.core.domain.CategoryType
+import com.expense.core.domain.PaymentMethodType
 import com.expense.core.dto.CreateAccountRequest
 import com.expense.core.dto.CreateCategoryRequest
+import com.expense.core.dto.CreatePaymentMethodRequest
 import com.expense.core.service.ExpenseManager
 import com.expense.core.util.Money
 import java.io.File
@@ -52,11 +56,15 @@ class MainActivity : ComponentActivity() {
                     val quickVm: QuickEntryViewModel = viewModel(factory = factory)
                     val historyVm: HistoryViewModel = viewModel(factory = factory)
                     val reportsVm: ReportsViewModel = viewModel(factory = factory)
+                    val manageVm: ManageViewModel = viewModel(factory = factory)
+                    val settingsVm: SettingsViewModel = viewModel(factory = factory)
                     AppNavigation(
                         dashboardViewModel = dashboardVm,
                         quickEntryViewModel = quickVm,
                         historyViewModel = historyVm,
                         reportsViewModel = reportsVm,
+                        manageViewModel = manageVm,
+                        settingsViewModel = settingsVm,
                         defaultAccountId = defaultAccountId,
                         currencyCode = currency.currencyCode,
                         storagePath = storagePath,
@@ -66,7 +74,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Ensures a default account and a couple of starter categories exist; returns the account id. */
+    /**
+     * Ensures a default account, starter categories and starter payment methods
+     * exist; returns the account id. Everything here is also creatable by hand on
+     * the Manage screen — this only keeps the first run from starting empty.
+     */
     private fun bootstrap(manager: ExpenseManager): Long {
         val accounts = manager.accounts().list()
         val accountId = if (accounts.isEmpty()) {
@@ -80,6 +92,11 @@ class MainActivity : ComponentActivity() {
             manager.categories().create(CreateCategoryRequest("Groceries", CategoryType.EXPENSE, "#4CAF50", "cart"))
             manager.categories().create(CreateCategoryRequest("Transport", CategoryType.EXPENSE, "#FF9800", "car"))
             manager.categories().create(CreateCategoryRequest("Salary", CategoryType.INCOME, "#2196F3", "wallet"))
+        }
+        if (manager.paymentMethods().list().isEmpty()) {
+            manager.paymentMethods().create(CreatePaymentMethodRequest("Cash", PaymentMethodType.CASH))
+            manager.paymentMethods().create(CreatePaymentMethodRequest("Debit card", PaymentMethodType.DEBIT_CARD))
+            manager.paymentMethods().create(CreatePaymentMethodRequest("E-wallet", PaymentMethodType.E_WALLET))
         }
         return accountId
     }
@@ -111,6 +128,10 @@ class FinanceViewModelFactory(
                 HistoryViewModel(repository) as T
             modelClass.isAssignableFrom(ReportsViewModel::class.java) ->
                 ReportsViewModel(repository) as T
+            modelClass.isAssignableFrom(ManageViewModel::class.java) ->
+                ManageViewModel(repository) as T
+            modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
+                SettingsViewModel(repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
         }
     }

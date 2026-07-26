@@ -9,7 +9,7 @@ JavaFX desktop app and a Jetpack Compose Android app.
 |-------------------|--------------------------|----------------------------------------------|
 | `expense-core`    | Pure Java 21 library     | **Complete & tested** (50 tests, all green)  |
 | `expense-desktop` | JavaFX (MVVM)            | Dashboard (month paging, CSV/Excel/PDF export), Add Expense (auto-categorise), Add Income, History (edit/delete), Budgets, Manage (archive/rename), Settings (Excel import, DB backup) |
-| `expense-android` | Android / Compose (MVVM) | Dashboard, Add Expense/Income, History (delete), Reports (budgets), Settings — bottom-nav |
+| `expense-android` | Android / Compose (MVVM) | Dashboard, Add Expense (payment method, date, auto-categorise) / Add Income, History (edit/delete), Reports (budgets), Manage (create/rename/archive), Settings (CSV export & share) — bottom-nav |
 | `documentation`   | Docs                     | Architecture, ERD, build guide               |
 
 The core contains **all** business logic (domain, validation, persistence ports,
@@ -65,7 +65,16 @@ See `documentation/` for the full architecture, ERD and build guide.
    Settings screens, plus CSV/Excel/PDF export and Excel import via Apache POI /
    PDFBox. `ExpenseManager` gained a DI constructor so either persistence adapter
    (JDBC on desktop, SQLite on Android) plugs into the same services unchanged.
-3. Remaining seams awaiting external infrastructure: cloud sync (`SyncClient`,
+3. **Done.** Android reached feature parity with the desktop for everything that
+   does not depend on desktop-only libraries. Transactions can be edited (not just
+   deleted) from History; a Manage screen creates accounts, categories and payment
+   methods and renames/archives them; the Add-Expense form gained a payment-method
+   picker, a date field and the offline `HeuristicExpenseCategorizer` suggestion;
+   Settings exports the month's transactions or summary to CSV and hands it to the
+   Android share sheet through a scoped `FileProvider`. Excel and PDF export stay
+   desktop-only — Apache POI and PDFBox are JVM-desktop libraries — while the CSV
+   exporters are pure Java and run unchanged on-device.
+4. Remaining seams awaiting external infrastructure: cloud sync (`SyncClient`,
    needs a backend) and OCR receipt scanning (`ReceiptScanner`, needs an OCR
    engine); multi-user accounts build on cloud sync. The offline
    `HeuristicExpenseCategorizer` is now wired into the desktop Add-Expense form;
