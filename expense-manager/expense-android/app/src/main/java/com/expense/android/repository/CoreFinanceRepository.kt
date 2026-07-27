@@ -37,15 +37,38 @@ class CoreFinanceRepository(
     override fun monthlySummary(month: YearMonth): MonthlySummary =
         manager.summaries().summarize(month)
 
-    override fun addExpense(accountId: Long, categoryId: Long?, amount: BigDecimal, description: String) {
+    override fun addExpense(
+        accountId: Long,
+        categoryId: Long?,
+        amount: BigDecimal,
+        description: String,
+        currencyCode: String?,
+    ): String? {
         val date = LocalDate.now()
+        val entryCurrency = if (currencyCode == null) currency else Currency.getInstance(currencyCode)
+        val entered = Money.of(amount, entryCurrency)
+        val money: Money = if (entryCurrency == currency) {
+            entered
+        } else {
+            // Foreign entry crosses currencies through the exchange-rate seam.
+            val converted = manager.conversions().convert(entered, currency, date)
+            if (converted.isEmpty) {
+                return null
+            }
+            converted.get()
+        }
         manager.expenses().create(
-            CreateExpenseRequest(accountId, categoryId, null, Money.of(amount, currency), description, date)
+            CreateExpenseRequest(accountId, categoryId, null, money, description, date)
         )
         // The core decides whether this save breached a budget; the injected
         // publisher (Android notification channel) delivers the alert.
         budgetAlerts?.checkAfterExpenseChange(YearMonth.from(date), categoryId)
+        return if (entryCurrency == currency) "Saved" else "Saved ($entered → $money)"
     }
+
+    override fun entryCurrencyCodes(): List<String> =
+        listOf(currency.currencyCode) +
+            manager.exchangeRates().sourcesFor(currency).map { it.currencyCode }
 
     override fun addIncome(accountId: Long, categoryId: Long?, amount: BigDecimal, description: String) {
         manager.incomes().create(

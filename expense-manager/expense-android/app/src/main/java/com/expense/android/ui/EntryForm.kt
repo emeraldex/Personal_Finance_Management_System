@@ -22,7 +22,10 @@ import com.expense.core.domain.Category
 /**
  * Shared amount + account + category + description form used by both the
  * Quick Expense and Quick Income screens. Presentation only; the submit action
- * is provided by the host and delegates to the ViewModel.
+ * is provided by the host and delegates to the ViewModel. When more than one
+ * [currencyOptions] entry is supplied a currency picker appears beside the
+ * amount and the selection is passed to [onSubmit] (null when the picker is
+ * hidden).
  */
 @Composable
 fun EntryForm(
@@ -32,7 +35,8 @@ fun EntryForm(
     defaultAccountId: Long,
     status: String,
     submitLabel: String,
-    onSubmit: (accountId: Long, categoryId: Long?, amount: String, description: String) -> Unit,
+    currencyOptions: List<String> = emptyList(),
+    onSubmit: (accountId: Long, categoryId: Long?, amount: String, description: String, currencyCode: String?) -> Unit,
 ) {
     var selectedAccount by remember(accounts) {
         mutableStateOf(accounts.firstOrNull { it.id() == defaultAccountId } ?: accounts.firstOrNull())
@@ -40,6 +44,8 @@ fun EntryForm(
     var selectedCategory by remember(categories) { mutableStateOf<Category?>(null) }
     var amount by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var selectedCurrency by remember(currencyOptions) { mutableStateOf(currencyOptions.firstOrNull()) }
+    val showCurrencyPicker = currencyOptions.size > 1
 
     Column(
         Modifier.fillMaxWidth().padding(16.dp),
@@ -61,6 +67,15 @@ fun EntryForm(
             itemLabel = { it.name() },
             onSelect = { selectedCategory = it },
         )
+        if (showCurrencyPicker) {
+            PickerField(
+                label = "Currency",
+                options = currencyOptions,
+                selected = selectedCurrency,
+                itemLabel = { it },
+                onSelect = { selectedCurrency = it },
+            )
+        }
         OutlinedTextField(
             value = amount,
             onValueChange = { amount = it },
@@ -76,7 +91,8 @@ fun EntryForm(
         Button(
             onClick = {
                 selectedAccount?.let { acct ->
-                    onSubmit(acct.id(), selectedCategory?.id(), amount, description)
+                    onSubmit(acct.id(), selectedCategory?.id(), amount, description,
+                        if (showCurrencyPicker) selectedCurrency else null)
                     amount = ""
                     description = ""
                 }

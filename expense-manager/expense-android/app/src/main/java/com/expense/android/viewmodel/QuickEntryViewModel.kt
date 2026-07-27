@@ -19,6 +19,7 @@ data class EntryOptions(
     val accounts: List<Account> = emptyList(),
     val expenseCategories: List<Category> = emptyList(),
     val incomeCategories: List<Category> = emptyList(),
+    val entryCurrencyCodes: List<String> = emptyList(),
 )
 
 /** ViewModel powering the Quick Expense / Quick Income screens. */
@@ -40,14 +41,38 @@ class QuickEntryViewModel(
                     accounts = repository.accounts(),
                     expenseCategories = repository.expenseCategories(),
                     incomeCategories = repository.incomeCategories(),
+                    entryCurrencyCodes = repository.entryCurrencyCodes(),
                 )
             }
             _options.value = opts
         }
     }
 
-    fun addExpense(accountId: Long, categoryId: Long?, amountText: String, description: String) =
-        submit(amountText) { amount -> repository.addExpense(accountId, categoryId, amount, description) }
+    /** Saves an expense entered in [currencyCode] (null = app currency), converting via the FX seam. */
+    fun addExpense(
+        accountId: Long,
+        categoryId: Long?,
+        amountText: String,
+        description: String,
+        currencyCode: String? = null,
+    ) {
+        val amount = amountText.toBigDecimalOrNull()
+        if (amount == null) {
+            _status.value = "Amount must be a number"
+            return
+        }
+        viewModelScope.launch {
+            try {
+                val note = withContext(Dispatchers.IO) {
+                    repository.addExpense(accountId, categoryId, amount, description, currencyCode)
+                }
+                _status.value = note
+                    ?: "No exchange rate for $currencyCode — set one in Settings"
+            } catch (e: ExpenseException) {
+                _status.value = e.message ?: "Could not save"
+            }
+        }
+    }
 
     fun addIncome(accountId: Long, categoryId: Long?, amountText: String, description: String) =
         submit(amountText) { amount -> repository.addIncome(accountId, categoryId, amount, description) }

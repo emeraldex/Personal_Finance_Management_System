@@ -18,8 +18,26 @@ interface FinanceRepository {
     /** Computes the rich monthly summary via the shared core analytics engine. */
     fun monthlySummary(month: YearMonth): MonthlySummary
 
-    /** Records a quick expense; [amount] is a positive magnitude, stored negative by the core. */
-    fun addExpense(accountId: Long, categoryId: Long?, amount: BigDecimal, description: String)
+    /**
+     * Records a quick expense; [amount] is a positive magnitude, stored negative
+     * by the core. When [currencyCode] names a foreign currency the amount is
+     * converted to the app currency via the exchange-rate seam ({@code null}
+     * means the app currency).
+     *
+     * @return a short display note of what was saved (mentioning the conversion
+     *         when one happened), or {@code null} when no exchange rate is
+     *         available — in which case nothing was saved
+     */
+    fun addExpense(
+        accountId: Long,
+        categoryId: Long?,
+        amount: BigDecimal,
+        description: String,
+        currencyCode: String? = null,
+    ): String?
+
+    /** Currency codes selectable for expense entry: the app currency first, then those with a rate into it. */
+    fun entryCurrencyCodes(): List<String>
 
     /** Records a quick income; [amount] is a positive magnitude. */
     fun addIncome(accountId: Long, categoryId: Long?, amount: BigDecimal, description: String)

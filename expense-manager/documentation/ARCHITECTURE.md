@@ -46,7 +46,8 @@ reusing every service and rule.
   `HeuristicExpenseCategorizer` default), `network.BankFeedClient` (bank
   transaction import), `network.ExchangeRateProvider` (multi-currency FX rates,
   with an offline `FixedExchangeRateProvider` default powering
-  `service.CurrencyConversionService` and the desktop's foreign-currency entry),
+  `service.CurrencyConversionService` and foreign-currency expense entry on
+  both front ends),
   `network.NotificationPublisher` (budget alerts / reminders — the core
   `service.BudgetAlertService` decides *when*; delivery is tray/toast
   publishers in `desktop.notify` on desktop and a notification-channel

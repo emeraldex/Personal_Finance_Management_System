@@ -23,8 +23,9 @@ fun QuickExpenseScreen(viewModel: QuickEntryViewModel, accountId: Long) {
         defaultAccountId = accountId,
         status = status,
         submitLabel = "Save expense",
-        onSubmit = { acct, category, amount, description ->
-            viewModel.addExpense(acct, category, amount, description)
+        currencyOptions = options.entryCurrencyCodes,
+        onSubmit = { acct, category, amount, description, currencyCode ->
+            viewModel.addExpense(acct, category, amount, description, currencyCode)
         },
     )
 }

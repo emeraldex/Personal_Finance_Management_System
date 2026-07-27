@@ -54,6 +54,17 @@ class MainActivity : ComponentActivity() {
         // Settings toggle is consulted at publish time so turning alerts off
         // applies immediately.
         val prefs = AppPrefs(applicationContext)
+
+        // Seed the core's fixed-rate table from persisted preferences
+        // (1 unit of <code> = <rate> units of the app currency).
+        prefs.fxRates().forEach { (code, rate) ->
+            try {
+                manager.exchangeRates().setRate(Currency.getInstance(code), currency, rate)
+            } catch (ignored: IllegalArgumentException) {
+                // A bad hand-edited code or rate is dropped rather than breaking startup.
+            }
+        }
+
         val channel = AndroidNotificationPublisher(applicationContext)
         val publisher = NotificationPublisher { n -> if (prefs.budgetAlerts) channel.publish(n) }
         val budgetAlerts = BudgetAlertService(manager.summaries(), publisher)
@@ -80,6 +91,15 @@ class MainActivity : ComponentActivity() {
                         storagePath = storagePath,
                         budgetAlertsEnabled = prefs.budgetAlerts,
                         onBudgetAlertsChange = { prefs.budgetAlerts = it },
+                        fxRates = prefs.fxRates(),
+                        onSetFxRate = { code, rate ->
+                            prefs.putFxRate(code, rate)
+                            manager.exchangeRates().setRate(Currency.getInstance(code), currency, rate)
+                        },
+                        onRemoveFxRate = { code ->
+                            prefs.removeFxRate(code)
+                            manager.exchangeRates().removeRate(Currency.getInstance(code), currency)
+                        },
                     )
                 }
             }

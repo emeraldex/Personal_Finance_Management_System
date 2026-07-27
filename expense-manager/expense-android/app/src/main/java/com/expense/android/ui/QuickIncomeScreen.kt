@@ -23,7 +23,7 @@ fun QuickIncomeScreen(viewModel: QuickEntryViewModel, accountId: Long) {
         defaultAccountId = accountId,
         status = status,
         submitLabel = "Save income",
-        onSubmit = { acct, category, amount, description ->
+        onSubmit = { acct, category, amount, description, _ ->
             viewModel.addIncome(acct, category, amount, description)
         },
     )
