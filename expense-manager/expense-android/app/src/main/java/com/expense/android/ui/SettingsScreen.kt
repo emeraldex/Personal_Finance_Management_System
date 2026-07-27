@@ -2,12 +2,19 @@ package com.expense.android.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -17,12 +24,40 @@ import androidx.compose.ui.unit.dp
  * for all rules, computation and validation.
  */
 @Composable
-fun SettingsScreen(currencyCode: String, storagePath: String) {
+fun SettingsScreen(
+    currencyCode: String,
+    storagePath: String,
+    budgetAlertsEnabled: Boolean,
+    onBudgetAlertsChange: (Boolean) -> Unit,
+) {
+    var alertsOn by remember { mutableStateOf(budgetAlertsEnabled) }
     Column(
         Modifier.fillMaxWidth().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Settings", style = MaterialTheme.typography.headlineSmall)
+
+        Card(Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.fillMaxWidth().padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Budget alerts", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        "Notify when a category approaches or exceeds its monthly budget",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                Switch(
+                    checked = alertsOn,
+                    onCheckedChange = {
+                        alertsOn = it
+                        onBudgetAlertsChange(it)
+                    },
+                )
+            }
+        }
 
         InfoCard("Currency", currencyCode)
         InfoCard("Data location", storagePath)

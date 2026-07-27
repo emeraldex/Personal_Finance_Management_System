@@ -1,15 +1,21 @@
 package com.expense.android
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.expense.android.data.AppPrefs
 import com.expense.android.data.CoreProvider
 import com.expense.android.navigation.AppNavigation
+import com.expense.android.notify.AndroidNotificationPublisher
 import com.expense.android.repository.CoreFinanceRepository
 import com.expense.android.repository.FinanceRepository
 import com.expense.android.viewmodel.DashboardViewModel
@@ -20,6 +26,8 @@ import com.expense.core.domain.AccountType
 import com.expense.core.domain.CategoryType
 import com.expense.core.dto.CreateAccountRequest
 import com.expense.core.dto.CreateCategoryRequest
+import com.expense.core.network.NotificationPublisher
+import com.expense.core.service.BudgetAlertService
 import com.expense.core.service.ExpenseManager
 import com.expense.core.util.Money
 import java.io.File
@@ -41,7 +49,17 @@ class MainActivity : ComponentActivity() {
 
         val manager = CoreProvider.get(applicationContext)
         val defaultAccountId = bootstrap(manager)
-        val repository: FinanceRepository = CoreFinanceRepository(manager, currency)
+
+        // NotificationPublisher seam: alerts post to a notification channel; the
+        // Settings toggle is consulted at publish time so turning alerts off
+        // applies immediately.
+        val prefs = AppPrefs(applicationContext)
+        val channel = AndroidNotificationPublisher(applicationContext)
+        val publisher = NotificationPublisher { n -> if (prefs.budgetAlerts) channel.publish(n) }
+        val budgetAlerts = BudgetAlertService(manager.summaries(), publisher)
+        requestNotificationPermissionIfNeeded()
+
+        val repository: FinanceRepository = CoreFinanceRepository(manager, currency, budgetAlerts)
         val factory = FinanceViewModelFactory(repository)
         val storagePath = File(applicationContext.filesDir, "expenses.db").absolutePath
 
@@ -60,9 +78,21 @@ class MainActivity : ComponentActivity() {
                         defaultAccountId = defaultAccountId,
                         currencyCode = currency.currencyCode,
                         storagePath = storagePath,
+                        budgetAlertsEnabled = prefs.budgetAlerts,
+                        onBudgetAlertsChange = { prefs.budgetAlerts = it },
                     )
                 }
             }
+        }
+    }
+
+    /** On API 33+ notifications need a runtime grant; earlier versions post freely. */
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+                .launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 

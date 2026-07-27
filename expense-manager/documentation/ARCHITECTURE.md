@@ -46,8 +46,9 @@ reusing every service and rule.
   `HeuristicExpenseCategorizer` default), `network.BankFeedClient` (bank
   transaction import), `network.ExchangeRateProvider` (multi-currency FX rates),
   `network.NotificationPublisher` (budget alerts / reminders — the core
-  `service.BudgetAlertService` decides *when*; on desktop, tray/toast
-  publishers in `desktop.notify` deliver), and
+  `service.BudgetAlertService` decides *when*; delivery is tray/toast
+  publishers in `desktop.notify` on desktop and a notification-channel
+  publisher in `android.notify` on Android), and
   `report.WorkbookImporter/WorkbookExporter` (Excel) are all interfaces. Future
   features drop in without touching business logic — enabling cloud sync, OCR,
   AI categorisation and multi-user support with no architectural change.

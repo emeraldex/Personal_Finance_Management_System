@@ -9,7 +9,7 @@ JavaFX desktop app and a Jetpack Compose Android app.
 |-------------------|--------------------------|----------------------------------------------|
 | `expense-core`    | Pure Java 21 library     | **Complete & tested** (57 tests, all green)  |
 | `expense-desktop` | JavaFX (MVVM)            | Dashboard (month paging, CSV/Excel/PDF export), Add Expense (auto-categorise, budget alerts), Add Income, History (edit/delete), Budgets, Manage (archive/rename), Settings (Excel import, DB backup) |
-| `expense-android` | Android / Compose (MVVM) | Dashboard, Add Expense/Income, History (delete), Reports (budgets), Settings — bottom-nav |
+| `expense-android` | Android / Compose (MVVM) | Dashboard, Add Expense/Income (budget alerts), History (delete), Reports (budgets), Settings — bottom-nav |
 | `documentation`   | Docs                     | Architecture, ERD, build guide               |
 
 The core contains **all** business logic (domain, validation, persistence ports,
@@ -70,10 +70,10 @@ See `documentation/` for the full architecture, ERD and build guide.
    engine); multi-user accounts build on cloud sync via `AuthClient` (needs an
    identity provider). Further seams ready for wiring: `BankFeedClient`
    (automatic bank-transaction import) and `ExchangeRateProvider`
-   (multi-currency conversion). `NotificationPublisher` is implemented on
-   desktop: the core `BudgetAlertService` decides when a budget deserves
-   attention and a system-tray publisher (in-window toast fallback) delivers
-   it, toggleable in Settings; an Android notification channel can implement
-   the same seam. The offline
+   (multi-currency conversion). `NotificationPublisher` is implemented on both
+   front ends: the core `BudgetAlertService` decides when a budget deserves
+   attention; delivery is a system-tray balloon on desktop (in-window toast
+   fallback) and a "Budget alerts" notification channel on Android — each with
+   a Settings toggle. The offline
    `HeuristicExpenseCategorizer` is now wired into the desktop Add-Expense form;
    an ML/LLM-backed categoriser can replace it behind the same seam.

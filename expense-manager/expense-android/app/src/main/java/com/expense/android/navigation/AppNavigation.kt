@@ -61,6 +61,8 @@ fun AppNavigation(
     defaultAccountId: Long,
     currencyCode: String,
     storagePath: String,
+    budgetAlertsEnabled: Boolean,
+    onBudgetAlertsChange: (Boolean) -> Unit,
 ) {
     val nav = rememberNavController()
     Scaffold(
@@ -96,7 +98,9 @@ fun AppNavigation(
             composable(Routes.QUICK_INCOME) { QuickIncomeScreen(quickEntryViewModel, defaultAccountId) }
             composable(Routes.HISTORY) { HistoryScreen(historyViewModel) }
             composable(Routes.REPORTS) { ReportsScreen(reportsViewModel) }
-            composable(Routes.SETTINGS) { SettingsScreen(currencyCode, storagePath) }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(currencyCode, storagePath, budgetAlertsEnabled, onBudgetAlertsChange)
+            }
         }
     }
 }

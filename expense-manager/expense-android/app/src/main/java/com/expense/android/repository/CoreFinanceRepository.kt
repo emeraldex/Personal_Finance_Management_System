@@ -11,6 +11,7 @@ import com.expense.core.dto.CreateBudgetRequest
 import com.expense.core.dto.CreateExpenseRequest
 import com.expense.core.dto.CreateIncomeRequest
 import com.expense.core.report.MonthlySummary
+import com.expense.core.service.BudgetAlertService
 import com.expense.core.service.ExpenseManager
 import com.expense.core.util.Money
 import java.math.BigDecimal
@@ -30,15 +31,20 @@ import java.util.Currency
 class CoreFinanceRepository(
     private val manager: ExpenseManager,
     private val currency: Currency = Currency.getInstance("MYR"),
+    private val budgetAlerts: BudgetAlertService? = null,
 ) : FinanceRepository {
 
     override fun monthlySummary(month: YearMonth): MonthlySummary =
         manager.summaries().summarize(month)
 
     override fun addExpense(accountId: Long, categoryId: Long?, amount: BigDecimal, description: String) {
+        val date = LocalDate.now()
         manager.expenses().create(
-            CreateExpenseRequest(accountId, categoryId, null, Money.of(amount, currency), description, LocalDate.now())
+            CreateExpenseRequest(accountId, categoryId, null, Money.of(amount, currency), description, date)
         )
+        // The core decides whether this save breached a budget; the injected
+        // publisher (Android notification channel) delivers the alert.
+        budgetAlerts?.checkAfterExpenseChange(YearMonth.from(date), categoryId)
     }
 
     override fun addIncome(accountId: Long, categoryId: Long?, amount: BigDecimal, description: String) {
