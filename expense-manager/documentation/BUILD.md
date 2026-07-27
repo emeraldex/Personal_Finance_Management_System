@@ -29,22 +29,31 @@ cd expense-android
 ./gradlew :app:assembleDebug        # build APK
 ./gradlew :app:installDebug         # install on a connected device/emulator
 ```
-> The Android module reuses `expense-core` for all business logic. Iteration 1
-> ships the Compose UI, ViewModels, navigation, the `FinanceRepository` port,
-> `CoreFinanceRepository` (delegates to the core), and `CoreProvider`/`MainActivity`
-> wiring. The desktop-oriented `sqlite-jdbc` artifact bundles native binaries for
-> desktop OSes, not Android ABIs, so on-device persistence requires either an
-> Android-compatible SQLite-JDBC build or native-SQLite adapters implementing the
-> core `*Repository` ports (iteration 2). The services and rules are identical
-> either way — only the persistence adapter differs.
+> The Android module reuses `expense-core` for all business logic. On-device
+> persistence uses `android.database.sqlite` adapters (`data.Android*Repository`)
+> implementing the core repository ports — no JDBC driver ships in the APK; the
+> services and rules are identical to desktop, only the storage adapter differs.
+> Build the core jar first (`mvn -pl expense-core -am install` from
+> `expense-manager/`); the Gradle build consumes it by path. Robolectric suites
+> exercise the SQLite adapters, the notification publisher and the FX/bank-feed
+> repository paths against real Android SQLite on the JVM — no emulator needed.
+
+## Continuous integration
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push: one job builds
+core + desktop in a single Maven reactor pass (running the full core test
+suite), the other validates the Gradle wrapper, builds the core jar, assembles
+the debug APK and runs the Android unit tests.
 
 ## Verifying the core in a restricted/offline environment
-The core has only three runtime dependencies (sqlite-jdbc, Jackson) and JUnit 5
-for tests. It can be compiled and tested with `javac` + the JUnit console
-launcher when a Maven mirror is unavailable — see the CI notes in the repo.
+The core's required runtime dependencies are sqlite-jdbc and Jackson
+(databind + jsr310); Apache POI and PDFBox are optional and bundled by the
+desktop app's shaded jar. The core can be compiled and tested with `javac` +
+the JUnit console launcher when a Maven mirror is unavailable.
 
 ## Notes on Excel/PDF
-`report.WorkbookImporter` / `WorkbookExporter` and a PDF `ReportExporter` are
-interfaces in iteration 1; their Apache POI / PDFBox implementations arrive in
-iteration 2. CSV export (`MonthlySummaryCsvExporter`, `TransactionCsvExporter`)
-is fully implemented and requires no extra dependencies.
+`report.WorkbookImporter` / `WorkbookExporter` and the PDF `ReportExporter`
+are implemented by `PoiWorkbookImporter` / `PoiWorkbookExporter` (Apache POI)
+and `PdfSummaryExporter` (PDFBox); the desktop app bundles both libraries in
+its shaded jar. CSV export (`MonthlySummaryCsvExporter`,
+`TransactionCsvExporter`) and bank-statement CSV import
+(`CsvStatementBankFeedClient`) require no extra dependencies.

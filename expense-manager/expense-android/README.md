@@ -21,18 +21,30 @@ Jetpack Compose (MVVM) client for the Personal Finance system. It **reuses**
   write instead) to support older Android SQLite. The adapters are verified by a
   Robolectric test (`app/src/test/.../AndroidPersistenceTest`) that exercises the
   full stack against real Android SQLite on the JVM — no emulator needed.
+- `notify.AndroidNotificationPublisher` implements the core
+  `NotificationPublisher` seam on a "Budget alerts" notification channel
+  (severity → priority, replace-not-stack, fire-and-forget); `data.AppPrefs`
+  persists the alert toggle and the fixed exchange rates that seed the core's
+  `FixedExchangeRateProvider` at startup. Both are covered by their own
+  Robolectric suites (`AndroidNotificationPublisherTest`,
+  `CoreFinanceRepositoryFxTest`).
 
 ## Screens & wiring
 - `MainActivity` (single-activity Compose host) builds the object graph and hosts
   the navigation graph.
 - A bottom navigation bar wires six destinations, all implemented:
   - **Dashboard** — headline cards + category breakdown, with a month pager.
-  - **Add Expense** / **Add Income** — shared `EntryForm` with account and
-    category pickers, backed by `QuickEntryViewModel`.
+  - **Add Expense** / **Add Income** — shared `EntryForm` with account,
+    category and (for expenses) currency pickers, backed by
+    `QuickEntryViewModel`; foreign amounts convert to MYR via the
+    exchange-rate seam, and saves re-check the category's budget, posting a
+    system notification on a breach.
   - **History** — the month's transactions with per-row delete (`HistoryViewModel`).
   - **Reports** — payment-method, budget-utilisation and cash-flow breakdowns
     plus a set-budget form (`ReportsViewModel`).
-  - **Settings** — read-only environment/about info (currency, data location).
+  - **Settings** — budget-alert toggle, fixed exchange-rate management,
+    bank-statement CSV import (account picker + system document picker), and
+    environment/about info (currency, data location).
 - Each screen follows the same MVVM shape (`ViewModel` exposing a `StateFlow`,
   a stateless Composable). The default currency is **MYR**, matching desktop.
 - The narrow `FinanceRepository` port now also exposes accounts, categories,

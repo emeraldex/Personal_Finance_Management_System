@@ -1,8 +1,8 @@
 # Test Results — expense-core
 
 All business logic in `expense-core` is covered by unit and integration
-tests that run against a real in-memory SQLite database (JDBC). The suite was
-compiled with `javac` (JDK 21) and executed with the JUnit 5 console launcher.
+tests that run against a real in-memory SQLite database (JDBC). The suite
+runs under Maven Surefire on JDK 21, locally and in CI on every push.
 
 **82 tests across 16 test classes — all passing.**
 

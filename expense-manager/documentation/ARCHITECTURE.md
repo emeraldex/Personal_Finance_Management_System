@@ -11,7 +11,9 @@
         ┌───────────────▼───────────────────────────────┐
         │  Application services (expense-core.service)   │
         │  ExpenseService, IncomeService, Category...,   │
-        │  BudgetService, MonthlySummaryService          │
+        │  BudgetService, MonthlySummaryService,         │
+        │  BudgetAlertService, BankFeedImportService,    │
+        │  CurrencyConversionService                     │
         └───────────────┬───────────────────────────────┘
              uses ports │            ▲ operates on
         ┌───────────────▼──────────┐ │ ┌───────────────────────────┐
@@ -102,14 +104,53 @@ classDiagram
     MonthlySummaryService --> BudgetRepository
     MonthlySummaryService --> MonthlySummary
 
+    class ExpenseCategorizer {
+        <<interface>>
+    }
+    class HeuristicExpenseCategorizer
+    ExpenseCategorizer <|.. HeuristicExpenseCategorizer
+
+    class ExchangeRateProvider {
+        <<interface>>
+    }
+    class FixedExchangeRateProvider
+    ExchangeRateProvider <|.. FixedExchangeRateProvider
+    class CurrencyConversionService
+    CurrencyConversionService --> ExchangeRateProvider
+
+    class NotificationPublisher {
+        <<interface>>
+    }
+    class BudgetAlertService
+    BudgetAlertService --> MonthlySummaryService
+    BudgetAlertService --> NotificationPublisher
+
+    class BankFeedClient {
+        <<interface>>
+    }
+    class CsvStatementBankFeedClient
+    BankFeedClient <|.. CsvStatementBankFeedClient
+    class BankFeedImportService
+    BankFeedImportService --> ExpenseService
+    BankFeedImportService --> IncomeService
+    BankFeedImportService --> ExpenseCategorizer
+    BankFeedImportService --> CurrencyConversionService
+
     class ExpenseManager {
         +categories()
         +expenses()
         +incomes()
         +summaries()
+        +budgets()
+        +categorizer()
+        +exchangeRates()
+        +conversions()
+        +bankFeedImports()
     }
     ExpenseManager --> ExpenseService
     ExpenseManager --> IncomeService
     ExpenseManager --> MonthlySummaryService
     ExpenseManager --> BudgetService
+    ExpenseManager --> CurrencyConversionService
+    ExpenseManager --> BankFeedImportService
 ```
