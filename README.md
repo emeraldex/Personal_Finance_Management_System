@@ -32,7 +32,7 @@ expense-manager/
 │       ├── util/         # Money value type
 │       ├── validation/   # ValidationErrors / Validator
 │       ├── exception/    # domain exception hierarchy
-│       ├── network/      # cloud-sync / OCR / AI-categorisation seams
+│       ├── network/      # external-integration seams: sync, auth, OCR, AI, FX, bank feed, notifications
 │       └── report/       # analytics DTOs + CSV/Excel/PDF exporters + import SPI
 ├── expense-desktop/
 │   └── src/main/java/com/expense/desktop/
@@ -67,6 +67,10 @@ See `documentation/` for the full architecture, ERD and build guide.
    (JDBC on desktop, SQLite on Android) plugs into the same services unchanged.
 3. Remaining seams awaiting external infrastructure: cloud sync (`SyncClient`,
    needs a backend) and OCR receipt scanning (`ReceiptScanner`, needs an OCR
-   engine); multi-user accounts build on cloud sync. The offline
+   engine); multi-user accounts build on cloud sync via `AuthClient` (needs an
+   identity provider). Further seams ready for wiring: `BankFeedClient`
+   (automatic bank-transaction import), `ExchangeRateProvider` (multi-currency
+   conversion) and `NotificationPublisher` (budget alerts / reminders — a
+   platform channel implements delivery). The offline
    `HeuristicExpenseCategorizer` is now wired into the desktop Add-Expense form;
    an ML/LLM-backed categoriser can replace it behind the same seam.

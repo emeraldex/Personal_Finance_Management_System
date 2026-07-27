@@ -41,8 +41,11 @@ reusing every service and rule.
 - **Sign convention enforced twice.** Domain constructors normalise sign; DB
   `CHECK (amount_minor <= 0 / >= 0)` is the last line of defence.
 - **Extension seams (open/closed).** `network.SyncClient` (cloud sync),
-  `network.ReceiptScanner` (OCR), `network.ExpenseCategorizer` (AI categorisation,
-  with a working offline `HeuristicExpenseCategorizer` default), and
+  `network.AuthClient` (authentication / multi-user), `network.ReceiptScanner`
+  (OCR), `network.ExpenseCategorizer` (AI categorisation, with a working offline
+  `HeuristicExpenseCategorizer` default), `network.BankFeedClient` (bank
+  transaction import), `network.ExchangeRateProvider` (multi-currency FX rates),
+  `network.NotificationPublisher` (budget alerts / reminders), and
   `report.WorkbookImporter/WorkbookExporter` (Excel) are all interfaces. Future
   features drop in without touching business logic — enabling cloud sync, OCR,
   AI categorisation and multi-user support with no architectural change.
