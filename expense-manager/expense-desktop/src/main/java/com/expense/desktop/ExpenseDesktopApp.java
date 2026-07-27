@@ -75,7 +75,7 @@ public final class ExpenseDesktopApp extends Application {
         BudgetAlertService budgetAlerts = new BudgetAlertService(manager.summaries(), publisher);
 
         DashboardViewModel dashboardVm = new DashboardViewModel(manager);
-        HistoryViewModel historyVm = new HistoryViewModel(manager, refreshAll);
+        HistoryViewModel historyVm = new HistoryViewModel(manager, refreshAll, budgetAlerts);
         BudgetViewModel budgetVm = new BudgetViewModel(manager, refreshAll);
         ExpenseFormViewModel expenseVm =
                 new ExpenseFormViewModel(manager, refreshAll, settings::isAutoCategorize, budgetAlerts);

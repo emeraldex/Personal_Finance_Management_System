@@ -10,6 +10,7 @@ import com.expense.core.domain.Transaction;
 import com.expense.core.dto.UpdateExpenseRequest;
 import com.expense.core.dto.UpdateIncomeRequest;
 import com.expense.core.exception.ExpenseException;
+import com.expense.core.service.BudgetAlertService;
 import com.expense.core.service.ExpenseManager;
 import com.expense.core.util.Money;
 import javafx.beans.property.SimpleStringProperty;
@@ -43,6 +44,7 @@ public final class HistoryViewModel {
     private final ExpenseManager manager;
     private final Currency currency;
     private final Runnable onDataChanged;
+    private final BudgetAlertService budgetAlerts;
 
     private YearMonth currentMonth = YearMonth.now();
 
@@ -54,10 +56,16 @@ public final class HistoryViewModel {
     private final StringProperty month = new SimpleStringProperty();
     private final StringProperty status = new SimpleStringProperty("");
 
-    public HistoryViewModel(ExpenseManager manager, Runnable onDataChanged) {
+    /**
+     * @param budgetAlerts checks an edited expense's budget and publishes a
+     *                     notification when warranted; {@code null} disables alerts
+     */
+    public HistoryViewModel(ExpenseManager manager, Runnable onDataChanged,
+                            BudgetAlertService budgetAlerts) {
         this.manager = Objects.requireNonNull(manager);
         this.currency = manager.defaultCurrency();
         this.onDataChanged = onDataChanged == null ? () -> { } : onDataChanged;
+        this.budgetAlerts = budgetAlerts;
         reload();
     }
 
@@ -165,6 +173,13 @@ public final class HistoryViewModel {
                         i.id(), account.id(), categoryId, money, description, date));
             }
             status.set("Updated");
+            // An edit can grow the amount or move the expense into another
+            // category/month, so re-check the budget it now counts against.
+            if (budgetAlerts != null && original instanceof Expense && date != null) {
+                budgetAlerts.checkAfterExpenseChange(YearMonth.from(date), categoryId)
+                        .ifPresent(n -> status.set("Updated — " + n.title().toLowerCase() + ": "
+                                + n.body()));
+            }
             reload();
             onDataChanged.run();
             return true;
