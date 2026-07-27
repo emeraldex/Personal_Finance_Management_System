@@ -4,6 +4,7 @@ import com.expense.core.domain.Account;
 import com.expense.core.network.BankFeedClient;
 import com.expense.core.network.BankFeedEntry;
 import com.expense.core.report.ImportResult;
+import com.expense.core.service.BudgetAlertService;
 import com.expense.core.service.ExpenseManager;
 import com.expense.desktop.Settings;
 import com.expense.desktop.io.PoiWorkbookImporter;
@@ -47,6 +48,7 @@ public final class SettingsViewModel {
     private final Path dbPath;
     private final Runnable onDataChanged;
     private final BankFeedClient bankFeed;
+    private final BudgetAlertService budgetAlerts;
 
     private final BooleanProperty autoCategorize = new SimpleBooleanProperty();
     private final BooleanProperty budgetAlerts = new SimpleBooleanProperty();
@@ -57,15 +59,20 @@ public final class SettingsViewModel {
     private final ObservableList<Account> accounts = FXCollections.observableArrayList();
     private final StringProperty status = new SimpleStringProperty("");
 
-    /** @param bankFeed the bank-feed seam implementation used for statement import */
+    /**
+     * @param bankFeed     the bank-feed seam implementation used for statement import
+     * @param budgetAlerts re-checks budgets affected by an import; {@code null} disables alerts
+     */
     public SettingsViewModel(Settings settings, ExpenseManager manager, Currency currency,
-                             Path dbPath, Runnable onDataChanged, BankFeedClient bankFeed) {
+                             Path dbPath, Runnable onDataChanged, BankFeedClient bankFeed,
+                             BudgetAlertService budgetAlerts) {
         this.settings = Objects.requireNonNull(settings);
         this.manager = Objects.requireNonNull(manager);
         this.currency = Objects.requireNonNull(currency);
         this.dbPath = Objects.requireNonNull(dbPath);
         this.onDataChanged = onDataChanged == null ? () -> { } : onDataChanged;
         this.bankFeed = Objects.requireNonNull(bankFeed);
+        this.budgetAlerts = budgetAlerts;
         reloadAccounts();
         autoCategorize.set(settings.isAutoCategorize());
         autoCategorize.addListener((obs, was, now) -> settings.setAutoCategorize(now));
@@ -156,7 +163,7 @@ public final class SettingsViewModel {
         try {
             List<BankFeedEntry> entries = bankFeed.fetch(file.getAbsolutePath(),
                     LocalDate.of(1970, 1, 1), LocalDate.now());
-            ImportResult result = manager.bankFeedImports().importInto(target.id(), entries);
+            ImportResult result = manager.bankFeedImports().importInto(target.id(), entries, budgetAlerts);
             StringBuilder msg = new StringBuilder("Bank feed: imported ")
                     .append(result.imported()).append(", skipped ").append(result.skipped());
             if (!result.warnings().isEmpty()) {

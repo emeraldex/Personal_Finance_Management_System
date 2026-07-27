@@ -2,6 +2,8 @@ package com.expense.core.service;
 
 import com.expense.core.domain.Expense;
 import com.expense.core.domain.Income;
+import com.expense.core.dto.CreateBudgetRequest;
+import com.expense.core.network.AppNotification;
 import com.expense.core.network.BankFeedEntry;
 import com.expense.core.report.ImportResult;
 import com.expense.core.util.Money;
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
 
@@ -73,6 +76,29 @@ class BankFeedImportServiceTest extends CoreTestBase {
         assertEquals(1, result.skipped());
         assertTrue(result.warnings().get(0).contains("MYR"));
         assertTrue(manager.expenses().listByMonth(JAN).isEmpty());
+    }
+
+    @Test
+    void checksAffectedBudgetsOncePerCategoryAfterImport() {
+        List<AppNotification> published = new ArrayList<>();
+        BudgetAlertService alerts = new BudgetAlertService(manager.summaries(), published::add);
+        manager.budgets().set(new CreateBudgetRequest(groceries.id(), JAN, usd("100.00")));
+        manager.bankFeedImports().importInto(account.id(), List.of(
+                entry("GROCERIES MARKET", "-80.00"),
+                entry("GROCERIES MARKET AGAIN", "-40.00")), alerts);
+        // Two imported debits, one affected budget -> exactly one notification.
+        assertEquals(1, published.size());
+        assertEquals(AppNotification.Severity.ALERT, published.get(0).severity());
+    }
+
+    @Test
+    void publishesNoAlertWhenImportStaysUnderBudget() {
+        List<AppNotification> published = new ArrayList<>();
+        BudgetAlertService alerts = new BudgetAlertService(manager.summaries(), published::add);
+        manager.budgets().set(new CreateBudgetRequest(groceries.id(), JAN, usd("500.00")));
+        manager.bankFeedImports().importInto(account.id(),
+                List.of(entry("GROCERIES MARKET", "-80.00")), alerts);
+        assertTrue(published.isEmpty());
     }
 
     @Test

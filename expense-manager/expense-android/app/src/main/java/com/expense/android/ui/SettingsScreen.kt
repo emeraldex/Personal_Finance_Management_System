@@ -1,5 +1,8 @@
 package com.expense.android.ui
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,10 +19,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.expense.android.ui.components.PickerField
+import com.expense.core.domain.Account
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.util.Currency
 
@@ -38,12 +45,24 @@ fun SettingsScreen(
     fxRates: Map<String, BigDecimal>,
     onSetFxRate: (String, BigDecimal) -> Unit,
     onRemoveFxRate: (String) -> Unit,
+    accounts: List<Account>,
+    onImportBankStatement: suspend (Long, Uri) -> String,
 ) {
     var alertsOn by remember { mutableStateOf(budgetAlertsEnabled) }
     var rates by remember { mutableStateOf(fxRates) }
     var fxCode by remember { mutableStateOf("") }
     var fxRate by remember { mutableStateOf("") }
     var fxStatus by remember { mutableStateOf("") }
+    var bankAccount by remember(accounts) { mutableStateOf(accounts.firstOrNull()) }
+    var bankStatus by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    val statementPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        val target = bankAccount
+        if (uri != null && target != null) {
+            bankStatus = "Importing…"
+            scope.launch { bankStatus = onImportBankStatement(target.id(), uri) }
+        }
+    }
     Column(
         Modifier.fillMaxWidth().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -129,6 +148,32 @@ fun SettingsScreen(
                 )
                 if (fxStatus.isNotEmpty()) {
                     Text(fxStatus, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Bank feed", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "Import a bank-statement CSV (Date,Description,Amount, debits negative). " +
+                        "Rows route to expenses/income by sign, duplicates are skipped and " +
+                        "debits are auto-categorised.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                PickerField(
+                    label = "Account",
+                    options = accounts,
+                    selected = bankAccount,
+                    itemLabel = { it.name() },
+                    onSelect = { bankAccount = it },
+                )
+                Button(
+                    onClick = { statementPicker.launch("*/*") },
+                    enabled = bankAccount != null,
+                ) { Text("Import statement…") }
+                if (bankStatus.isNotEmpty()) {
+                    Text(bankStatus, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

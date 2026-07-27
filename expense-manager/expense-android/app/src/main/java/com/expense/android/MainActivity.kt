@@ -26,11 +26,15 @@ import com.expense.core.domain.AccountType
 import com.expense.core.domain.CategoryType
 import com.expense.core.dto.CreateAccountRequest
 import com.expense.core.dto.CreateCategoryRequest
+import com.expense.core.network.CsvStatementBankFeedClient
 import com.expense.core.network.NotificationPublisher
 import com.expense.core.service.BudgetAlertService
 import com.expense.core.service.ExpenseManager
 import com.expense.core.util.Money
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.LocalDate
 import java.util.Currency
 
 /**
@@ -74,6 +78,11 @@ class MainActivity : ComponentActivity() {
         val factory = FinanceViewModelFactory(repository)
         val storagePath = File(applicationContext.filesDir, "expenses.db").absolutePath
 
+        // Bank-feed seam: the offline default parses downloaded CSV statements;
+        // an open-banking client can replace it behind the same interface.
+        val bankFeed = CsvStatementBankFeedClient(currency)
+        val settingsAccounts = manager.accounts().list().filter { !it.archived() }
+
         setContent {
             MaterialTheme {
                 Surface {
@@ -100,9 +109,44 @@ class MainActivity : ComponentActivity() {
                             prefs.removeFxRate(code)
                             manager.exchangeRates().removeRate(Currency.getInstance(code), currency)
                         },
+                        accounts = settingsAccounts,
+                        onImportBankStatement = { accountId, uri ->
+                            importBankStatement(manager, bankFeed, budgetAlerts, accountId, uri)
+                        },
                     )
                 }
             }
+        }
+    }
+
+    /**
+     * Copies the picked document to a cache file (the core parser reads file
+     * paths, not content URIs) and imports it through the bank-feed seam,
+     * re-checking affected budgets. Returns a status line for the screen.
+     */
+    private suspend fun importBankStatement(
+        manager: ExpenseManager,
+        bankFeed: CsvStatementBankFeedClient,
+        budgetAlerts: BudgetAlertService,
+        accountId: Long,
+        uri: android.net.Uri,
+    ): String = withContext(Dispatchers.IO) {
+        try {
+            val cache = File(cacheDir, "bank-statement-import.csv")
+            val input = contentResolver.openInputStream(uri)
+                ?: return@withContext "Could not open the selected file"
+            input.use { source -> cache.outputStream().use { source.copyTo(it) } }
+            val entries = bankFeed.fetch(cache.absolutePath, LocalDate.of(1970, 1, 1), LocalDate.now())
+            val result = manager.bankFeedImports().importInto(accountId, entries, budgetAlerts)
+            buildString {
+                append("Bank feed: imported ").append(result.imported())
+                append(", skipped ").append(result.skipped())
+                if (result.warnings().isNotEmpty()) {
+                    append(" — ").append(result.warnings().joinToString("; "))
+                }
+            }
+        } catch (e: RuntimeException) {
+            "Bank import failed: ${e.message}"
         }
     }
 

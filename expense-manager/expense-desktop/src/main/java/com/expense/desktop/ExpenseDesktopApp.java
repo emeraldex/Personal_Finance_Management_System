@@ -100,7 +100,7 @@ public final class ExpenseDesktopApp extends Application {
         // an open-banking client can replace it behind the same interface.
         SettingsViewModel settingsVm = new SettingsViewModel(
                 settings, manager, CURRENCY, dataDir.resolve("expenses.db"), refreshAll,
-                new CsvStatementBankFeedClient(CURRENCY));
+                new CsvStatementBankFeedClient(CURRENCY), budgetAlerts);
 
         // Any data change refreshes the read screens and the entry-form pickers.
         refreshHolder[0] = () -> {

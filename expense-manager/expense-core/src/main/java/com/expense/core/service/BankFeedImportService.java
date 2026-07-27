@@ -13,11 +13,14 @@ import com.expense.core.report.ImportResult;
 import com.expense.core.util.Money;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Currency;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Imports {@link BankFeedEntry} drafts produced by the {@link BankFeedClient}
@@ -53,14 +56,29 @@ public final class BankFeedImportService {
     }
 
     /**
-     * Imports the entries into the given account.
+     * Imports the entries into the given account without budget-alert checks.
      *
      * @return counts of imported and skipped entries plus human-readable warnings
      */
     public ImportResult importInto(long accountId, List<BankFeedEntry> entries) {
+        return importInto(accountId, entries, null);
+    }
+
+    /**
+     * Imports the entries into the given account. When {@code budgetAlerts} is
+     * supplied, every budget affected by an imported debit is re-checked once
+     * after the batch — one potential notification per (month, category), not
+     * one per entry.
+     *
+     * @return counts of imported and skipped entries plus human-readable warnings
+     */
+    public ImportResult importInto(long accountId, List<BankFeedEntry> entries,
+                                   BudgetAlertService budgetAlerts) {
+        record AffectedBudget(YearMonth month, long categoryId) { }
         int imported = 0;
         int skipped = 0;
         List<String> warnings = new ArrayList<>();
+        Set<AffectedBudget> affected = new LinkedHashSet<>();
         var expenseCategories = categories.listByType(CategoryType.EXPENSE).stream()
                 .filter(c -> !c.archived()).toList();
         for (BankFeedEntry entry : entries) {
@@ -88,11 +106,19 @@ public final class BankFeedImportService {
                         .orElse(null);
                 expenses.create(new CreateExpenseRequest(accountId, categoryId, null,
                         signed.abs(), entry.description(), entry.postedOn()));
+                if (categoryId != null) {
+                    affected.add(new AffectedBudget(YearMonth.from(entry.postedOn()), categoryId));
+                }
             } else {
                 incomes.create(new CreateIncomeRequest(accountId, null,
                         signed, entry.description(), entry.postedOn()));
             }
             imported++;
+        }
+        if (budgetAlerts != null) {
+            for (AffectedBudget budget : affected) {
+                budgetAlerts.checkAfterExpenseChange(budget.month(), budget.categoryId());
+            }
         }
         return new ImportResult(imported, skipped, warnings);
     }

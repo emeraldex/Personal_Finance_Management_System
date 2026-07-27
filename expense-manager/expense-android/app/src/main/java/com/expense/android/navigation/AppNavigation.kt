@@ -66,6 +66,8 @@ fun AppNavigation(
     fxRates: Map<String, java.math.BigDecimal>,
     onSetFxRate: (String, java.math.BigDecimal) -> Unit,
     onRemoveFxRate: (String) -> Unit,
+    accounts: List<com.expense.core.domain.Account>,
+    onImportBankStatement: suspend (Long, android.net.Uri) -> String,
 ) {
     val nav = rememberNavController()
     Scaffold(
@@ -103,7 +105,7 @@ fun AppNavigation(
             composable(Routes.REPORTS) { ReportsScreen(reportsViewModel) }
             composable(Routes.SETTINGS) {
                 SettingsScreen(currencyCode, storagePath, budgetAlertsEnabled, onBudgetAlertsChange,
-                    fxRates, onSetFxRate, onRemoveFxRate)
+                    fxRates, onSetFxRate, onRemoveFxRate, accounts, onImportBankStatement)
             }
         }
     }
