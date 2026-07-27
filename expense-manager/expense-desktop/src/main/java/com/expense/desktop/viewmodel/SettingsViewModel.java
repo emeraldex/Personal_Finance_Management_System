@@ -60,19 +60,19 @@ public final class SettingsViewModel {
     private final StringProperty status = new SimpleStringProperty("");
 
     /**
-     * @param bankFeed     the bank-feed seam implementation used for statement import
-     * @param budgetAlerts re-checks budgets affected by an import; {@code null} disables alerts
+     * @param bankFeed           the bank-feed seam implementation used for statement import
+     * @param budgetAlertService re-checks budgets affected by an import; {@code null} disables alerts
      */
     public SettingsViewModel(Settings settings, ExpenseManager manager, Currency currency,
                              Path dbPath, Runnable onDataChanged, BankFeedClient bankFeed,
-                             BudgetAlertService budgetAlerts) {
+                             BudgetAlertService budgetAlertService) {
         this.settings = Objects.requireNonNull(settings);
         this.manager = Objects.requireNonNull(manager);
         this.currency = Objects.requireNonNull(currency);
         this.dbPath = Objects.requireNonNull(dbPath);
         this.onDataChanged = onDataChanged == null ? () -> { } : onDataChanged;
         this.bankFeed = Objects.requireNonNull(bankFeed);
-        this.budgetAlertService = budgetAlerts;
+        this.budgetAlertService = budgetAlertService;
         reloadAccounts();
         autoCategorize.set(settings.isAutoCategorize());
         autoCategorize.addListener((obs, was, now) -> settings.setAutoCategorize(now));
