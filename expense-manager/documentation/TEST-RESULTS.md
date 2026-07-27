@@ -4,7 +4,14 @@ All business logic in `expense-core` is covered by unit and integration
 tests that run against a real in-memory SQLite database (JDBC). The suite was
 compiled with `javac` (JDK 21) and executed with the JUnit 5 console launcher.
 
-**69 tests across 14 test classes — all passing.**
+**80 tests across 16 test classes — all passing.**
+
+### BankFeedImportServiceTest
+- Routes Debits To Expenses And Credits To Income
+- Reimporting The Same Entries Is Idempotent
+- Converts Foreign Entries Through The Exchange Rate Seam
+- Skips Foreign Entries Without A Rate
+- Skips Zero Amounts With A Warning
 
 ### BudgetAlertServiceTest
 - Publishes Alert When Budget Exceeded
@@ -33,6 +40,14 @@ compiled with `javac` (JDK 21) and executed with the JUnit 5 console launcher.
 ### CsvExporterTest
 - Exports Monthly Summary As Csv
 - Escapes Fields Containing Commas
+
+### CsvStatementBankFeedClientTest
+- Parses Rows Skipping Header And Sorts Oldest First
+- Filters To The Requested Date Range
+- Handles Quoted Descriptions Containing Commas
+- Uses Provided External Id And Synthesises Stable Ids Otherwise
+- Skips Malformed Rows
+- Throws On Unreadable File
 
 ### CurrencyConversionServiceTest
 - Same Currency Is Identity

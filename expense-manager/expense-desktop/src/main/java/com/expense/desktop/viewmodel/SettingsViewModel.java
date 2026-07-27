@@ -1,13 +1,20 @@
 package com.expense.desktop.viewmodel;
 
+import com.expense.core.domain.Account;
+import com.expense.core.network.BankFeedClient;
+import com.expense.core.network.BankFeedEntry;
 import com.expense.core.report.ImportResult;
 import com.expense.core.service.ExpenseManager;
 import com.expense.desktop.Settings;
 import com.expense.desktop.io.PoiWorkbookImporter;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -17,7 +24,9 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.util.Currency;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -37,21 +46,27 @@ public final class SettingsViewModel {
     private final Currency currency;
     private final Path dbPath;
     private final Runnable onDataChanged;
+    private final BankFeedClient bankFeed;
 
     private final BooleanProperty autoCategorize = new SimpleBooleanProperty();
     private final BooleanProperty budgetAlerts = new SimpleBooleanProperty();
     private final StringProperty fxCode = new SimpleStringProperty("");
     private final StringProperty fxRate = new SimpleStringProperty("");
     private final StringProperty fxRatesDisplay = new SimpleStringProperty("");
+    private final ObjectProperty<Account> bankAccount = new SimpleObjectProperty<>();
+    private final ObservableList<Account> accounts = FXCollections.observableArrayList();
     private final StringProperty status = new SimpleStringProperty("");
 
+    /** @param bankFeed the bank-feed seam implementation used for statement import */
     public SettingsViewModel(Settings settings, ExpenseManager manager, Currency currency,
-                             Path dbPath, Runnable onDataChanged) {
+                             Path dbPath, Runnable onDataChanged, BankFeedClient bankFeed) {
         this.settings = Objects.requireNonNull(settings);
         this.manager = Objects.requireNonNull(manager);
         this.currency = Objects.requireNonNull(currency);
         this.dbPath = Objects.requireNonNull(dbPath);
         this.onDataChanged = onDataChanged == null ? () -> { } : onDataChanged;
+        this.bankFeed = Objects.requireNonNull(bankFeed);
+        reloadAccounts();
         autoCategorize.set(settings.isAutoCategorize());
         autoCategorize.addListener((obs, was, now) -> settings.setAutoCategorize(now));
         budgetAlerts.set(settings.isBudgetAlerts());
@@ -119,6 +134,44 @@ public final class SettingsViewModel {
                         .collect(Collectors.joining("\n")));
     }
 
+    /** Reloads the account picker for statement import, keeping a still-valid selection. */
+    public void reloadAccounts() {
+        accounts.setAll(manager.accounts().list().stream().filter(a -> !a.archived()).toList());
+        if (bankAccount.get() == null || !accounts.contains(bankAccount.get())) {
+            bankAccount.set(accounts.isEmpty() ? null : accounts.get(0));
+        }
+    }
+
+    /**
+     * Imports a bank-statement CSV into the selected account through the
+     * bank-feed seam: parses drafts, then routes/de-dupes/categorises/converts
+     * via the core {@code BankFeedImportService}.
+     */
+    public boolean importBankStatement(File file) {
+        Account target = bankAccount.get();
+        if (target == null) {
+            status.set("Choose an account for the statement");
+            return false;
+        }
+        try {
+            List<BankFeedEntry> entries = bankFeed.fetch(file.getAbsolutePath(),
+                    LocalDate.of(1970, 1, 1), LocalDate.now());
+            ImportResult result = manager.bankFeedImports().importInto(target.id(), entries);
+            StringBuilder msg = new StringBuilder("Bank feed: imported ")
+                    .append(result.imported()).append(", skipped ").append(result.skipped());
+            if (!result.warnings().isEmpty()) {
+                msg.append(" — ").append(result.warnings().size()).append(" note(s): ")
+                        .append(String.join("; ", result.warnings()));
+            }
+            status.set(msg.toString());
+            onDataChanged.run();
+            return true;
+        } catch (RuntimeException e) {
+            status.set("Bank import failed: " + e.getMessage());
+            return false;
+        }
+    }
+
     /** Copies the live database file to {@code target} as a backup snapshot. */
     public boolean backupDatabase(File target) {
         try {
@@ -166,5 +219,7 @@ public final class SettingsViewModel {
     public StringProperty fxCodeProperty() { return fxCode; }
     public StringProperty fxRateProperty() { return fxRate; }
     public StringProperty fxRatesDisplayProperty() { return fxRatesDisplay; }
+    public ObjectProperty<Account> bankAccountProperty() { return bankAccount; }
+    public ObservableList<Account> getAccounts() { return accounts; }
     public StringProperty statusProperty() { return status; }
 }

@@ -44,7 +44,9 @@ reusing every service and rule.
   `network.AuthClient` (authentication / multi-user), `network.ReceiptScanner`
   (OCR), `network.ExpenseCategorizer` (AI categorisation, with a working offline
   `HeuristicExpenseCategorizer` default), `network.BankFeedClient` (bank
-  transaction import), `network.ExchangeRateProvider` (multi-currency FX rates,
+  transaction import, with an offline `CsvStatementBankFeedClient` statement
+  parser feeding `service.BankFeedImportService`, which composes the
+  categoriser and FX seams), `network.ExchangeRateProvider` (multi-currency FX rates,
   with an offline `FixedExchangeRateProvider` default powering
   `service.CurrencyConversionService` and foreign-currency expense entry on
   both front ends),

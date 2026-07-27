@@ -7,8 +7,8 @@ JavaFX desktop app and a Jetpack Compose Android app.
 
 | Module            | Type                     | Status (iteration 1)                         |
 |-------------------|--------------------------|----------------------------------------------|
-| `expense-core`    | Pure Java 21 library     | **Complete & tested** (69 tests, all green)  |
-| `expense-desktop` | JavaFX (MVVM)            | Dashboard (month paging, CSV/Excel/PDF export), Add Expense (auto-categorise, budget alerts, multi-currency entry), Add Income, History (edit/delete), Budgets, Manage (archive/rename), Settings (Excel import, DB backup, exchange rates) |
+| `expense-core`    | Pure Java 21 library     | **Complete & tested** (80 tests, all green)  |
+| `expense-desktop` | JavaFX (MVVM)            | Dashboard (month paging, CSV/Excel/PDF export), Add Expense (auto-categorise, budget alerts, multi-currency entry), Add Income, History (edit/delete), Budgets, Manage (archive/rename), Settings (Excel import, DB backup, exchange rates, bank-statement import) |
 | `expense-android` | Android / Compose (MVVM) | Dashboard, Add Expense/Income (budget alerts, multi-currency entry), History (delete), Reports (budgets), Settings (exchange rates) — bottom-nav |
 | `documentation`   | Docs                     | Architecture, ERD, build guide               |
 
@@ -68,8 +68,13 @@ See `documentation/` for the full architecture, ERD and build guide.
 3. Remaining seams awaiting external infrastructure: cloud sync (`SyncClient`,
    needs a backend) and OCR receipt scanning (`ReceiptScanner`, needs an OCR
    engine); multi-user accounts build on cloud sync via `AuthClient` (needs an
-   identity provider). One seam remains ready for wiring: `BankFeedClient`
-   (automatic bank-transaction import). `ExchangeRateProvider` is implemented
+   identity provider). `BankFeedClient` is implemented offline: the
+   `CsvStatementBankFeedClient` default parses downloaded bank-statement CSVs
+   into drafts, and the core `BankFeedImportService` routes them by sign,
+   de-duplicates on content, auto-categorises debits via the categoriser seam
+   and converts foreign statements via the FX seam (desktop Settings hosts the
+   import); an open-banking client can replace the parser behind the same
+   seam. `ExchangeRateProvider` is implemented
    on both front ends: the offline `FixedExchangeRateProvider` (rates
    maintained in each platform's Settings) powers `CurrencyConversionService`,
    letting the Add Expense forms take amounts in a foreign currency and

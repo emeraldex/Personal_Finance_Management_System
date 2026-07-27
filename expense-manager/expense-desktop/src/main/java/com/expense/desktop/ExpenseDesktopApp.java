@@ -1,5 +1,6 @@
 package com.expense.desktop;
 
+import com.expense.core.network.CsvStatementBankFeedClient;
 import com.expense.core.network.NotificationPublisher;
 import com.expense.core.service.BudgetAlertService;
 import com.expense.desktop.notify.ToastNotificationPublisher;
@@ -95,8 +96,11 @@ public final class ExpenseDesktopApp extends Application {
             expenseVm.refreshLookups();
             incomeVm.refreshLookups();
         });
+        // Bank-feed seam: the offline default parses downloaded CSV statements;
+        // an open-banking client can replace it behind the same interface.
         SettingsViewModel settingsVm = new SettingsViewModel(
-                settings, manager, CURRENCY, dataDir.resolve("expenses.db"), refreshAll);
+                settings, manager, CURRENCY, dataDir.resolve("expenses.db"), refreshAll,
+                new CsvStatementBankFeedClient(CURRENCY));
 
         // Any data change refreshes the read screens and the entry-form pickers.
         refreshHolder[0] = () -> {
@@ -105,6 +109,7 @@ public final class ExpenseDesktopApp extends Application {
             budgetVm.reload();
             expenseVm.refreshLookups();
             incomeVm.refreshLookups();
+            settingsVm.reloadAccounts();
         };
 
         TabPane tabs = new TabPane();

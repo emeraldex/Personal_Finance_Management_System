@@ -1,10 +1,12 @@
 package com.expense.desktop.ui;
 
+import com.expense.core.domain.Account;
 import com.expense.desktop.viewmodel.SettingsViewModel;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
@@ -12,6 +14,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
+import javafx.util.StringConverter;
 
 import java.io.File;
 import java.util.Objects;
@@ -19,7 +22,8 @@ import java.util.Objects;
 /**
  * Pure View for the Settings / Data tab: entry toggles (auto-categorise, budget
  * alerts), fixed exchange-rate management, a database backup action, an Excel
- * import action, and read-only environment details.
+ * import action, bank-statement import via the bank-feed seam, and read-only
+ * environment details.
  */
 public final class SettingsView {
 
@@ -90,6 +94,30 @@ public final class SettingsView {
         importHint.setStyle("-fx-text-fill: #666;");
         importHint.setWrapText(true);
 
+        ComboBox<Account> bankAccountBox = new ComboBox<>(vm.getAccounts());
+        bankAccountBox.valueProperty().bindBidirectional(vm.bankAccountProperty());
+        bankAccountBox.setConverter(new StringConverter<>() {
+            @Override public String toString(Account a) { return a == null ? "" : a.name(); }
+            @Override public Account fromString(String s) { return null; }
+        });
+        Button importBank = new Button("Import bank statement (CSV)…");
+        importBank.setOnAction(e -> {
+            Window window = ((Node) e.getSource()).getScene().getWindow();
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle("Import bank statement");
+            chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV statement", "*.csv"));
+            File file = chooser.showOpenDialog(window);
+            if (file != null) {
+                vm.importBankStatement(file);
+            }
+        });
+        Label bankHint = new Label(
+                "Statement columns: Date, Description, Amount (debits negative), optional ExternalId. "
+                        + "Rows are routed to expenses/income by sign, de-duplicated, and debits are "
+                        + "auto-categorised; foreign-currency statements use your exchange rates.");
+        bankHint.setStyle("-fx-text-fill: #666;");
+        bankHint.setWrapText(true);
+
         Label info = new Label("Data file: " + vm.getDatabasePath()
                 + "\nCurrency: " + vm.getCurrencyCode());
         info.setStyle("-fx-text-fill: #666;");
@@ -106,6 +134,8 @@ public final class SettingsView {
                 fxHint, fxList,
                 new Separator(),
                 new Label("Data"), new HBox(8, backup, importExcel), importHint,
+                new Separator(),
+                new Label("Bank feed"), new HBox(8, bankAccountBox, importBank), bankHint,
                 new Separator(),
                 info,
                 status);

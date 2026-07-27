@@ -60,6 +60,7 @@ public final class ExpenseManager implements AutoCloseable {
     private final ExpenseCategorizer categorizer;
     private final FixedExchangeRateProvider exchangeRates;
     private final CurrencyConversionService conversionService;
+    private final BankFeedImportService bankFeedImportService;
 
     /**
      * Constructs a manager over an already-configured {@link Database}. Prefer the
@@ -108,6 +109,8 @@ public final class ExpenseManager implements AutoCloseable {
         this.categorizer = new HeuristicExpenseCategorizer();
         this.exchangeRates = new FixedExchangeRateProvider();
         this.conversionService = new CurrencyConversionService(exchangeRates);
+        this.bankFeedImportService = new BankFeedImportService(expenseService, incomeService,
+                categoryService, categorizer, conversionService, defaultCurrency);
     }
 
     /**
@@ -168,6 +171,11 @@ public final class ExpenseManager implements AutoCloseable {
     /** Currency conversion over the exchange-rate seam. */
     public CurrencyConversionService conversions() {
         return conversionService;
+    }
+
+    /** Imports bank-feed drafts, composing the categoriser and exchange-rate seams. */
+    public BankFeedImportService bankFeedImports() {
+        return bankFeedImportService;
     }
 
     /** The default currency used for empty-month summaries. */
