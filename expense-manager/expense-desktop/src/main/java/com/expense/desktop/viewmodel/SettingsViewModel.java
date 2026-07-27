@@ -48,7 +48,7 @@ public final class SettingsViewModel {
     private final Path dbPath;
     private final Runnable onDataChanged;
     private final BankFeedClient bankFeed;
-    private final BudgetAlertService budgetAlerts;
+    private final BudgetAlertService budgetAlertService;
 
     private final BooleanProperty autoCategorize = new SimpleBooleanProperty();
     private final BooleanProperty budgetAlerts = new SimpleBooleanProperty();
@@ -72,7 +72,7 @@ public final class SettingsViewModel {
         this.dbPath = Objects.requireNonNull(dbPath);
         this.onDataChanged = onDataChanged == null ? () -> { } : onDataChanged;
         this.bankFeed = Objects.requireNonNull(bankFeed);
-        this.budgetAlerts = budgetAlerts;
+        this.budgetAlertService = budgetAlerts;
         reloadAccounts();
         autoCategorize.set(settings.isAutoCategorize());
         autoCategorize.addListener((obs, was, now) -> settings.setAutoCategorize(now));
@@ -163,7 +163,7 @@ public final class SettingsViewModel {
         try {
             List<BankFeedEntry> entries = bankFeed.fetch(file.getAbsolutePath(),
                     LocalDate.of(1970, 1, 1), LocalDate.now());
-            ImportResult result = manager.bankFeedImports().importInto(target.id(), entries, budgetAlerts);
+            ImportResult result = manager.bankFeedImports().importInto(target.id(), entries, budgetAlertService);
             StringBuilder msg = new StringBuilder("Bank feed: imported ")
                     .append(result.imported()).append(", skipped ").append(result.skipped());
             if (!result.warnings().isEmpty()) {
