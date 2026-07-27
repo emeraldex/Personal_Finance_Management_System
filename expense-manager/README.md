@@ -7,8 +7,8 @@ JavaFX desktop app and a Jetpack Compose Android app.
 
 | Module            | Type                     | Status (iteration 1)                         |
 |-------------------|--------------------------|----------------------------------------------|
-| `expense-core`    | Pure Java 21 library     | **Complete & tested** (50 tests, all green)  |
-| `expense-desktop` | JavaFX (MVVM)            | Dashboard (month paging, CSV/Excel/PDF export), Add Expense (auto-categorise), Add Income, History (edit/delete), Budgets, Manage (archive/rename), Settings (Excel import, DB backup) |
+| `expense-core`    | Pure Java 21 library     | **Complete & tested** (57 tests, all green)  |
+| `expense-desktop` | JavaFX (MVVM)            | Dashboard (month paging, CSV/Excel/PDF export), Add Expense (auto-categorise, budget alerts), Add Income, History (edit/delete), Budgets, Manage (archive/rename), Settings (Excel import, DB backup) |
 | `expense-android` | Android / Compose (MVVM) | Dashboard, Add Expense/Income, History (delete), Reports (budgets), Settings — bottom-nav |
 | `documentation`   | Docs                     | Architecture, ERD, build guide               |
 
@@ -69,8 +69,11 @@ See `documentation/` for the full architecture, ERD and build guide.
    needs a backend) and OCR receipt scanning (`ReceiptScanner`, needs an OCR
    engine); multi-user accounts build on cloud sync via `AuthClient` (needs an
    identity provider). Further seams ready for wiring: `BankFeedClient`
-   (automatic bank-transaction import), `ExchangeRateProvider` (multi-currency
-   conversion) and `NotificationPublisher` (budget alerts / reminders — a
-   platform channel implements delivery). The offline
+   (automatic bank-transaction import) and `ExchangeRateProvider`
+   (multi-currency conversion). `NotificationPublisher` is implemented on
+   desktop: the core `BudgetAlertService` decides when a budget deserves
+   attention and a system-tray publisher (in-window toast fallback) delivers
+   it, toggleable in Settings; an Android notification channel can implement
+   the same seam. The offline
    `HeuristicExpenseCategorizer` is now wired into the desktop Add-Expense form;
    an ML/LLM-backed categoriser can replace it behind the same seam.

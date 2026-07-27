@@ -1,5 +1,9 @@
 package com.expense.desktop;
 
+import com.expense.core.network.NotificationPublisher;
+import com.expense.core.service.BudgetAlertService;
+import com.expense.desktop.notify.ToastNotificationPublisher;
+import com.expense.desktop.notify.TrayNotificationPublisher;
 import com.expense.desktop.ui.BudgetView;
 import com.expense.desktop.ui.DashboardView;
 import com.expense.desktop.ui.ExpenseView;
@@ -34,6 +38,8 @@ public final class ExpenseDesktopApp extends Application {
 
     private static final Currency CURRENCY = Currency.getInstance("MYR");
 
+    private TrayNotificationPublisher tray;
+
     @Override
     public void init() {
         String dbPath = Path.of(System.getProperty("user.home"), ".expense-manager", "expenses.db")
@@ -55,11 +61,24 @@ public final class ExpenseDesktopApp extends Application {
         final Runnable[] refreshHolder = new Runnable[1];
         Runnable refreshAll = () -> refreshHolder[0].run();
 
+        // NotificationPublisher seam: OS tray where available, in-window toast
+        // otherwise; the Settings toggle is consulted at publish time so turning
+        // alerts off applies immediately.
+        NotificationPublisher channel = TrayNotificationPublisher.create("Expense Manager")
+                .<NotificationPublisher>map(t -> tray = t)
+                .orElseGet(() -> new ToastNotificationPublisher(stage));
+        NotificationPublisher publisher = n -> {
+            if (settings.isBudgetAlerts()) {
+                channel.publish(n);
+            }
+        };
+        BudgetAlertService budgetAlerts = new BudgetAlertService(manager.summaries(), publisher);
+
         DashboardViewModel dashboardVm = new DashboardViewModel(manager);
         HistoryViewModel historyVm = new HistoryViewModel(manager, refreshAll);
         BudgetViewModel budgetVm = new BudgetViewModel(manager, refreshAll);
         ExpenseFormViewModel expenseVm =
-                new ExpenseFormViewModel(manager, refreshAll, settings::isAutoCategorize);
+                new ExpenseFormViewModel(manager, refreshAll, settings::isAutoCategorize, budgetAlerts);
         IncomeFormViewModel incomeVm = new IncomeFormViewModel(manager, refreshAll);
         // When master data changes on the Manage tab, refresh the entry-form pickers.
         ManageViewModel manageVm = new ManageViewModel(manager, CURRENCY, () -> {
@@ -100,6 +119,9 @@ public final class ExpenseDesktopApp extends Application {
 
     @Override
     public void stop() {
+        if (tray != null) {
+            tray.dispose();
+        }
         AppContext.shutdown();
     }
 

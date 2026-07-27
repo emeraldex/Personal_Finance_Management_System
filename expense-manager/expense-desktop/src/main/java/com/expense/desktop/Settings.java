@@ -17,9 +17,11 @@ import java.util.Properties;
 public final class Settings {
 
     private static final String KEY_AUTO_CATEGORIZE = "autoCategorize";
+    private static final String KEY_BUDGET_ALERTS = "budgetAlerts";
 
     private final Path file;
     private boolean autoCategorize = true;
+    private boolean budgetAlerts = true;
 
     public Settings(Path dataDir) {
         this.file = Objects.requireNonNull(dataDir).resolve("settings.properties");
@@ -35,6 +37,15 @@ public final class Settings {
         save();
     }
 
+    public boolean isBudgetAlerts() {
+        return budgetAlerts;
+    }
+
+    public void setBudgetAlerts(boolean value) {
+        this.budgetAlerts = value;
+        save();
+    }
+
     private void load() {
         if (!Files.exists(file)) {
             return;
@@ -46,11 +57,13 @@ public final class Settings {
             return;
         }
         autoCategorize = Boolean.parseBoolean(p.getProperty(KEY_AUTO_CATEGORIZE, "true"));
+        budgetAlerts = Boolean.parseBoolean(p.getProperty(KEY_BUDGET_ALERTS, "true"));
     }
 
     private void save() {
         Properties p = new Properties();
         p.setProperty(KEY_AUTO_CATEGORIZE, String.valueOf(autoCategorize));
+        p.setProperty(KEY_BUDGET_ALERTS, String.valueOf(budgetAlerts));
         try {
             Files.createDirectories(file.getParent());
             try (OutputStream out = Files.newOutputStream(file)) {

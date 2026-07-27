@@ -4,7 +4,16 @@ All business logic in `expense-core` is covered by unit and integration
 tests that run against a real in-memory SQLite database (JDBC). The suite was
 compiled with `javac` (JDK 21) and executed with the JUnit 5 console launcher.
 
-**50 tests across 11 test classes — all passing.**
+**57 tests across 12 test classes — all passing.**
+
+### BudgetAlertServiceTest
+- Publishes Alert When Budget Exceeded
+- Publishes Warning When Approaching Limit
+- Silent When Well Under Budget
+- Silent For Category Without Budget
+- Silent For Uncategorised Expense
+- Alert Names The Category And Budget
+- Custom Threshold Is Respected
 
 ### BudgetServiceTest
 - Upsert Replaces Existing Budget For Same Category And Month

@@ -6,6 +6,7 @@ import com.expense.core.domain.CategoryType;
 import com.expense.core.domain.PaymentMethod;
 import com.expense.core.dto.CreateExpenseRequest;
 import com.expense.core.exception.ValidationException;
+import com.expense.core.service.BudgetAlertService;
 import com.expense.core.service.ExpenseManager;
 import com.expense.core.util.Money;
 import javafx.beans.property.ObjectProperty;
@@ -17,6 +18,7 @@ import javafx.collections.ObservableList;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Currency;
 import java.util.Objects;
 
@@ -33,6 +35,7 @@ public final class ExpenseFormViewModel {
     private final Currency currency;
     private final Runnable onSaved;
     private final java.util.function.BooleanSupplier autoCategorize;
+    private final BudgetAlertService budgetAlerts;
 
     private final StringProperty amount = new SimpleStringProperty("");
     private final StringProperty description = new SimpleStringProperty("");
@@ -46,12 +49,18 @@ public final class ExpenseFormViewModel {
     private final ObservableList<Category> categories = FXCollections.observableArrayList();
     private final ObservableList<PaymentMethod> paymentMethods = FXCollections.observableArrayList();
 
+    /**
+     * @param budgetAlerts checks the saved expense's budget and publishes a
+     *                     notification when warranted; {@code null} disables alerts
+     */
     public ExpenseFormViewModel(ExpenseManager manager, Runnable onSaved,
-                                java.util.function.BooleanSupplier autoCategorize) {
+                                java.util.function.BooleanSupplier autoCategorize,
+                                BudgetAlertService budgetAlerts) {
         this.manager = Objects.requireNonNull(manager);
         this.currency = manager.defaultCurrency();
         this.onSaved = onSaved == null ? () -> { } : onSaved;
         this.autoCategorize = autoCategorize == null ? () -> false : autoCategorize;
+        this.budgetAlerts = budgetAlerts;
         refreshLookups();
     }
 
@@ -107,6 +116,11 @@ public final class ExpenseFormViewModel {
             manager.expenses().create(new CreateExpenseRequest(
                     account.get().id(), categoryId, pmId, money, description.get(), date.get()));
             status.set("Saved");
+            if (budgetAlerts != null) {
+                budgetAlerts.checkAfterExpenseChange(YearMonth.from(date.get()), categoryId)
+                        .ifPresent(n -> status.set("Saved — " + n.title().toLowerCase() + ": "
+                                + n.body()));
+            }
             amount.set("");
             description.set("");
             onSaved.run();

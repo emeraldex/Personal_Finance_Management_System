@@ -34,6 +34,7 @@ public final class SettingsViewModel {
     private final Runnable onDataChanged;
 
     private final BooleanProperty autoCategorize = new SimpleBooleanProperty();
+    private final BooleanProperty budgetAlerts = new SimpleBooleanProperty();
     private final StringProperty status = new SimpleStringProperty("");
 
     public SettingsViewModel(Settings settings, ExpenseManager manager, Currency currency,
@@ -45,6 +46,8 @@ public final class SettingsViewModel {
         this.onDataChanged = onDataChanged == null ? () -> { } : onDataChanged;
         autoCategorize.set(settings.isAutoCategorize());
         autoCategorize.addListener((obs, was, now) -> settings.setAutoCategorize(now));
+        budgetAlerts.set(settings.isBudgetAlerts());
+        budgetAlerts.addListener((obs, was, now) -> settings.setBudgetAlerts(now));
     }
 
     /** Copies the live database file to {@code target} as a backup snapshot. */
@@ -90,5 +93,6 @@ public final class SettingsViewModel {
     }
 
     public BooleanProperty autoCategorizeProperty() { return autoCategorize; }
+    public BooleanProperty budgetAlertsProperty() { return budgetAlerts; }
     public StringProperty statusProperty() { return status; }
 }

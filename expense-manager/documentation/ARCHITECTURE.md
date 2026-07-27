@@ -45,7 +45,9 @@ reusing every service and rule.
   (OCR), `network.ExpenseCategorizer` (AI categorisation, with a working offline
   `HeuristicExpenseCategorizer` default), `network.BankFeedClient` (bank
   transaction import), `network.ExchangeRateProvider` (multi-currency FX rates),
-  `network.NotificationPublisher` (budget alerts / reminders), and
+  `network.NotificationPublisher` (budget alerts / reminders — the core
+  `service.BudgetAlertService` decides *when*; on desktop, tray/toast
+  publishers in `desktop.notify` deliver), and
   `report.WorkbookImporter/WorkbookExporter` (Excel) are all interfaces. Future
   features drop in without touching business logic — enabling cloud sync, OCR,
   AI categorisation and multi-user support with no architectural change.

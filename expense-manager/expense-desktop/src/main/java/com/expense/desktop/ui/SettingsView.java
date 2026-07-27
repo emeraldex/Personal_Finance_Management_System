@@ -35,6 +35,10 @@ public final class SettingsView {
                 "Automatically suggest a category from the description when saving an expense");
         autoCategorize.selectedProperty().bindBidirectional(vm.autoCategorizeProperty());
 
+        CheckBox budgetAlerts = new CheckBox(
+                "Notify me when a category approaches or exceeds its monthly budget");
+        budgetAlerts.selectedProperty().bindBidirectional(vm.budgetAlertsProperty());
+
         Button backup = new Button("Back up database…");
         backup.setOnAction(e -> {
             Window window = ((Node) e.getSource()).getScene().getWindow();
@@ -75,7 +79,7 @@ public final class SettingsView {
 
         VBox root = new VBox(14,
                 heading,
-                new Label("Entry"), autoCategorize,
+                new Label("Entry"), autoCategorize, budgetAlerts,
                 new Separator(),
                 new Label("Data"), new HBox(8, backup, importExcel), importHint,
                 new Separator(),
