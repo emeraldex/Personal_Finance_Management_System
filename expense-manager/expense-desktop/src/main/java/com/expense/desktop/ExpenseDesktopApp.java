@@ -61,6 +61,16 @@ public final class ExpenseDesktopApp extends Application {
         final Runnable[] refreshHolder = new Runnable[1];
         Runnable refreshAll = () -> refreshHolder[0].run();
 
+        // Seed the core's fixed-rate table from persisted Settings
+        // (1 unit of <code> = <rate> units of the app currency).
+        settings.fxRates().forEach((code, rate) -> {
+            try {
+                manager.exchangeRates().setRate(Currency.getInstance(code), CURRENCY, rate);
+            } catch (IllegalArgumentException ignored) {
+                // A hand-edited bad code or rate is dropped rather than breaking startup.
+            }
+        });
+
         // NotificationPublisher seam: OS tray where available, in-window toast
         // otherwise; the Settings toggle is consulted at publish time so turning
         // alerts off applies immediately.

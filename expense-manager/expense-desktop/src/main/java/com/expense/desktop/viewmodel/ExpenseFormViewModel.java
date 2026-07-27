@@ -38,6 +38,7 @@ public final class ExpenseFormViewModel {
     private final BudgetAlertService budgetAlerts;
 
     private final StringProperty amount = new SimpleStringProperty("");
+    private final ObjectProperty<Currency> entryCurrency = new SimpleObjectProperty<>();
     private final StringProperty description = new SimpleStringProperty("");
     private final ObjectProperty<LocalDate> date = new SimpleObjectProperty<>(LocalDate.now());
     private final ObjectProperty<Account> account = new SimpleObjectProperty<>();
@@ -48,6 +49,7 @@ public final class ExpenseFormViewModel {
     private final ObservableList<Account> accounts = FXCollections.observableArrayList();
     private final ObservableList<Category> categories = FXCollections.observableArrayList();
     private final ObservableList<PaymentMethod> paymentMethods = FXCollections.observableArrayList();
+    private final ObservableList<Currency> currencies = FXCollections.observableArrayList();
 
     /**
      * @param budgetAlerts checks the saved expense's budget and publishes a
@@ -61,16 +63,28 @@ public final class ExpenseFormViewModel {
         this.onSaved = onSaved == null ? () -> { } : onSaved;
         this.autoCategorize = autoCategorize == null ? () -> false : autoCategorize;
         this.budgetAlerts = budgetAlerts;
+        this.entryCurrency.set(currency);
         refreshLookups();
     }
 
-    /** Reloads accounts / expense categories / payment methods, excluding archived ones. */
+    /**
+     * Reloads accounts / expense categories / payment methods (excluding archived
+     * ones) and the entry currencies: the app currency plus every currency with an
+     * exchange rate into it.
+     */
     public void refreshLookups() {
         accounts.setAll(manager.accounts().list().stream().filter(a -> !a.archived()).toList());
         categories.setAll(manager.categories().listByType(CategoryType.EXPENSE).stream()
                 .filter(c -> !c.archived()).toList());
         paymentMethods.setAll(manager.paymentMethods().list().stream()
                 .filter(p -> !p.archived()).toList());
+        var options = new java.util.ArrayList<Currency>();
+        options.add(currency);
+        options.addAll(manager.exchangeRates().sourcesFor(currency));
+        currencies.setAll(options);
+        if (!currencies.contains(entryCurrency.get())) {
+            entryCurrency.set(currency);
+        }
     }
 
     /**
@@ -110,12 +124,27 @@ public final class ExpenseFormViewModel {
             if (category.get() == null && autoCategorize.getAsBoolean()) {
                 suggestCategory();
             }
-            Money money = Money.of(new BigDecimal(amount.get().trim()), currency);
+            Money entered = Money.of(new BigDecimal(amount.get().trim()),
+                    entryCurrency.get() == null ? currency : entryCurrency.get());
+            Money money;
+            if (entered.currency().equals(currency)) {
+                money = entered;
+            } else {
+                var converted = manager.conversions().convert(entered, currency, date.get());
+                if (converted.isEmpty()) {
+                    status.set("No exchange rate for " + entered.currency().getCurrencyCode()
+                            + " — set one in Settings");
+                    return false;
+                }
+                money = converted.get();
+            }
             Long categoryId = category.get() == null ? null : category.get().id();
             Long pmId = paymentMethod.get() == null ? null : paymentMethod.get().id();
             manager.expenses().create(new CreateExpenseRequest(
                     account.get().id(), categoryId, pmId, money, description.get(), date.get()));
-            status.set("Saved");
+            status.set(entered.currency().equals(currency)
+                    ? "Saved"
+                    : "Saved (" + entered + " → " + money + ")");
             if (budgetAlerts != null) {
                 budgetAlerts.checkAfterExpenseChange(YearMonth.from(date.get()), categoryId)
                         .ifPresent(n -> status.set("Saved — " + n.title().toLowerCase() + ": "
@@ -135,6 +164,7 @@ public final class ExpenseFormViewModel {
     }
 
     public StringProperty amountProperty() { return amount; }
+    public ObjectProperty<Currency> entryCurrencyProperty() { return entryCurrency; }
     public StringProperty descriptionProperty() { return description; }
     public ObjectProperty<LocalDate> dateProperty() { return date; }
     public ObjectProperty<Account> accountProperty() { return account; }
@@ -144,4 +174,5 @@ public final class ExpenseFormViewModel {
     public ObservableList<Account> getAccounts() { return accounts; }
     public ObservableList<Category> getCategories() { return categories; }
     public ObservableList<PaymentMethod> getPaymentMethods() { return paymentMethods; }
+    public ObservableList<Currency> getCurrencies() { return currencies; }
 }

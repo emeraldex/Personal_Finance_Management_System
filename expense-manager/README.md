@@ -7,8 +7,8 @@ JavaFX desktop app and a Jetpack Compose Android app.
 
 | Module            | Type                     | Status (iteration 1)                         |
 |-------------------|--------------------------|----------------------------------------------|
-| `expense-core`    | Pure Java 21 library     | **Complete & tested** (57 tests, all green)  |
-| `expense-desktop` | JavaFX (MVVM)            | Dashboard (month paging, CSV/Excel/PDF export), Add Expense (auto-categorise, budget alerts), Add Income, History (edit/delete), Budgets, Manage (archive/rename), Settings (Excel import, DB backup) |
+| `expense-core`    | Pure Java 21 library     | **Complete & tested** (69 tests, all green)  |
+| `expense-desktop` | JavaFX (MVVM)            | Dashboard (month paging, CSV/Excel/PDF export), Add Expense (auto-categorise, budget alerts, multi-currency entry), Add Income, History (edit/delete), Budgets, Manage (archive/rename), Settings (Excel import, DB backup, exchange rates) |
 | `expense-android` | Android / Compose (MVVM) | Dashboard, Add Expense/Income (budget alerts), History (delete), Reports (budgets), Settings — bottom-nav |
 | `documentation`   | Docs                     | Architecture, ERD, build guide               |
 
@@ -68,9 +68,13 @@ See `documentation/` for the full architecture, ERD and build guide.
 3. Remaining seams awaiting external infrastructure: cloud sync (`SyncClient`,
    needs a backend) and OCR receipt scanning (`ReceiptScanner`, needs an OCR
    engine); multi-user accounts build on cloud sync via `AuthClient` (needs an
-   identity provider). Further seams ready for wiring: `BankFeedClient`
-   (automatic bank-transaction import) and `ExchangeRateProvider`
-   (multi-currency conversion). `NotificationPublisher` is implemented on both
+   identity provider). One seam remains ready for wiring: `BankFeedClient`
+   (automatic bank-transaction import). `ExchangeRateProvider` is implemented:
+   the offline `FixedExchangeRateProvider` (rates maintained in desktop
+   Settings) powers `CurrencyConversionService`, letting the desktop Add
+   Expense form take amounts in a foreign currency and convert them to the app
+   currency on save; a live rates API can replace the fixed table behind the
+   same seam. `NotificationPublisher` is implemented on both
    front ends: the core `BudgetAlertService` decides when a budget deserves
    attention; delivery is a system-tray balloon on desktop (in-window toast
    fallback) and a "Budget alerts" notification channel on Android — each with

@@ -14,6 +14,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
 
+import java.util.Currency;
 import java.util.Objects;
 
 /**
@@ -54,6 +55,13 @@ public final class ExpenseView {
         amount.textProperty().bindBidirectional(vm.amountProperty());
         amount.setPromptText("e.g. 42.50");
 
+        // Currency of the entered amount; foreign amounts are converted to the
+        // app currency at save time via the exchange-rate seam.
+        ComboBox<Currency> currencyBox = new ComboBox<>(vm.getCurrencies());
+        currencyBox.valueProperty().bindBidirectional(vm.entryCurrencyProperty());
+        currencyBox.setConverter(converter(c -> c == null ? "" : c.getCurrencyCode()));
+        HBox amountRow = new HBox(8, currencyBox, amount);
+
         TextField description = new TextField();
         description.textProperty().bindBidirectional(vm.descriptionProperty());
 
@@ -69,7 +77,7 @@ public final class ExpenseView {
         grid.addRow(0, new Label("Account"), accountBox);
         grid.addRow(1, new Label("Category"), categoryRow);
         grid.addRow(2, new Label("Payment"), paymentBox);
-        grid.addRow(3, new Label("Amount"), amount);
+        grid.addRow(3, new Label("Amount"), amountRow);
         grid.addRow(4, new Label("Description"), description);
         grid.addRow(5, new Label("Date"), date);
         grid.addRow(6, save, status);

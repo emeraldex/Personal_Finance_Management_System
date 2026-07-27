@@ -4,7 +4,7 @@ All business logic in `expense-core` is covered by unit and integration
 tests that run against a real in-memory SQLite database (JDBC). The suite was
 compiled with `javac` (JDK 21) and executed with the JUnit 5 console launcher.
 
-**57 tests across 12 test classes — all passing.**
+**69 tests across 14 test classes — all passing.**
 
 ### BudgetAlertServiceTest
 - Publishes Alert When Budget Exceeded
@@ -34,6 +34,13 @@ compiled with `javac` (JDK 21) and executed with the JUnit 5 console launcher.
 - Exports Monthly Summary As Csv
 - Escapes Fields Containing Commas
 
+### CurrencyConversionServiceTest
+- Same Currency Is Identity
+- Converts Using Provider Rate
+- Converts Back Via Derived Inverse Rate
+- Empty When No Rate Available
+- Result Uses Target Currency Fraction Digits
+
 ### ExpenseServiceTest
 - Rejects Unknown Account
 - Create Stores Expense As Negative Amount
@@ -41,6 +48,15 @@ compiled with `javac` (JDK 21) and executed with the JUnit 5 console launcher.
 - Rejects Income Category On Expense
 - Delete Removes Expense
 - Update Changes Amount Keeping Negative Sign
+
+### FixedExchangeRateProviderTest
+- Returns Direct Rate
+- Derives Inverse Rate
+- Same Currency Is Always One
+- Empty For Unknown Pair
+- Remove Forgets Both Directions
+- Rejects Non Positive Rate
+- Sources For Lists Direct And Inverse Pairs
 
 ### ForeignKeyIntegrationTest
 - Check Constraint Rejects Positive Expense At Db Level

@@ -7,6 +7,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -16,8 +17,9 @@ import java.io.File;
 import java.util.Objects;
 
 /**
- * Pure View for the Settings / Data tab: an auto-categorise toggle, a database
- * backup action, an Excel import action, and read-only environment details.
+ * Pure View for the Settings / Data tab: entry toggles (auto-categorise, budget
+ * alerts), fixed exchange-rate management, a database backup action, an Excel
+ * import action, and read-only environment details.
  */
 public final class SettingsView {
 
@@ -38,6 +40,25 @@ public final class SettingsView {
         CheckBox budgetAlerts = new CheckBox(
                 "Notify me when a category approaches or exceeds its monthly budget");
         budgetAlerts.selectedProperty().bindBidirectional(vm.budgetAlertsProperty());
+
+        TextField fxCode = new TextField();
+        fxCode.setPromptText("USD");
+        fxCode.setPrefColumnCount(4);
+        fxCode.textProperty().bindBidirectional(vm.fxCodeProperty());
+        TextField fxRate = new TextField();
+        fxRate.setPromptText("4.70");
+        fxRate.setPrefColumnCount(7);
+        fxRate.textProperty().bindBidirectional(vm.fxRateProperty());
+        Button setRate = new Button("Set rate");
+        setRate.setOnAction(e -> vm.setFxRate());
+        Button removeRate = new Button("Remove");
+        removeRate.setOnAction(e -> vm.removeFxRate());
+        Label fxHint = new Label("1 <code> = <rate> " + vm.getCurrencyCode()
+                + " — lets the Add Expense form take amounts in that currency and convert them on save.");
+        fxHint.setStyle("-fx-text-fill: #666;");
+        fxHint.setWrapText(true);
+        Label fxList = new Label();
+        fxList.textProperty().bind(vm.fxRatesDisplayProperty());
 
         Button backup = new Button("Back up database…");
         backup.setOnAction(e -> {
@@ -80,6 +101,9 @@ public final class SettingsView {
         VBox root = new VBox(14,
                 heading,
                 new Label("Entry"), autoCategorize, budgetAlerts,
+                new Separator(),
+                new Label("Exchange rates"), new HBox(8, fxCode, fxRate, setRate, removeRate),
+                fxHint, fxList,
                 new Separator(),
                 new Label("Data"), new HBox(8, backup, importExcel), importHint,
                 new Separator(),

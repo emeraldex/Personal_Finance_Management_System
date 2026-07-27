@@ -3,6 +3,7 @@ package com.expense.core.service;
 import com.expense.core.database.Database;
 import com.expense.core.exception.PersistenceException;
 import com.expense.core.network.ExpenseCategorizer;
+import com.expense.core.network.FixedExchangeRateProvider;
 import com.expense.core.network.HeuristicExpenseCategorizer;
 import com.expense.core.repository.AccountRepository;
 import com.expense.core.repository.BudgetRepository;
@@ -57,6 +58,8 @@ public final class ExpenseManager implements AutoCloseable {
     private final BudgetService budgetService;
     private final MonthlySummaryService summaryService;
     private final ExpenseCategorizer categorizer;
+    private final FixedExchangeRateProvider exchangeRates;
+    private final CurrencyConversionService conversionService;
 
     /**
      * Constructs a manager over an already-configured {@link Database}. Prefer the
@@ -103,6 +106,8 @@ public final class ExpenseManager implements AutoCloseable {
         this.summaryService = new MonthlySummaryService(
                 expenses, incomes, categories, paymentMethods, budgets, summaries, defaultCurrency);
         this.categorizer = new HeuristicExpenseCategorizer();
+        this.exchangeRates = new FixedExchangeRateProvider();
+        this.conversionService = new CurrencyConversionService(exchangeRates);
     }
 
     /**
@@ -153,6 +158,16 @@ public final class ExpenseManager implements AutoCloseable {
     /** The default offline categoriser; a smarter implementation can be swapped in later. */
     public ExpenseCategorizer categorizer() {
         return categorizer;
+    }
+
+    /** The default offline, user-maintained rate table; an API-backed provider can replace it behind the same seam. */
+    public FixedExchangeRateProvider exchangeRates() {
+        return exchangeRates;
+    }
+
+    /** Currency conversion over the exchange-rate seam. */
+    public CurrencyConversionService conversions() {
+        return conversionService;
     }
 
     /** The default currency used for empty-month summaries. */

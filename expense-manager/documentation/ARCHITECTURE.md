@@ -44,7 +44,9 @@ reusing every service and rule.
   `network.AuthClient` (authentication / multi-user), `network.ReceiptScanner`
   (OCR), `network.ExpenseCategorizer` (AI categorisation, with a working offline
   `HeuristicExpenseCategorizer` default), `network.BankFeedClient` (bank
-  transaction import), `network.ExchangeRateProvider` (multi-currency FX rates),
+  transaction import), `network.ExchangeRateProvider` (multi-currency FX rates,
+  with an offline `FixedExchangeRateProvider` default powering
+  `service.CurrencyConversionService` and the desktop's foreign-currency entry),
   `network.NotificationPublisher` (budget alerts / reminders — the core
   `service.BudgetAlertService` decides *when*; delivery is tray/toast
   publishers in `desktop.notify` on desktop and a notification-channel

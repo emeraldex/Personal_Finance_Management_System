@@ -13,16 +13,21 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Currency;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
- * ViewModel for the Settings / Data tab. Surfaces the persisted auto-categorise
- * preference, backs up the SQLite database to a chosen file, and imports a
- * transaction workbook via {@link PoiWorkbookImporter}. After an import it runs
+ * ViewModel for the Settings / Data tab. Surfaces the persisted entry
+ * preferences (auto-categorise, budget alerts), manages the fixed exchange-rate
+ * table (persisted in Settings and mirrored into the core's live provider),
+ * backs up the SQLite database to a chosen file, and imports a transaction
+ * workbook via {@link PoiWorkbookImporter}. After a data-changing action it runs
  * {@code onDataChanged} so every read screen refreshes.
  */
 public final class SettingsViewModel {
@@ -35,6 +40,9 @@ public final class SettingsViewModel {
 
     private final BooleanProperty autoCategorize = new SimpleBooleanProperty();
     private final BooleanProperty budgetAlerts = new SimpleBooleanProperty();
+    private final StringProperty fxCode = new SimpleStringProperty("");
+    private final StringProperty fxRate = new SimpleStringProperty("");
+    private final StringProperty fxRatesDisplay = new SimpleStringProperty("");
     private final StringProperty status = new SimpleStringProperty("");
 
     public SettingsViewModel(Settings settings, ExpenseManager manager, Currency currency,
@@ -48,6 +56,67 @@ public final class SettingsViewModel {
         autoCategorize.addListener((obs, was, now) -> settings.setAutoCategorize(now));
         budgetAlerts.set(settings.isBudgetAlerts());
         budgetAlerts.addListener((obs, was, now) -> settings.setBudgetAlerts(now));
+        refreshFxDisplay();
+    }
+
+    /**
+     * Sets (or replaces) a fixed exchange rate from the {@code fxCode}/{@code fxRate}
+     * fields: 1 unit of the entered currency = rate units of the app currency.
+     * Persists to Settings and updates the core's live rate table.
+     */
+    public boolean setFxRate() {
+        String code = fxCode.get().trim().toUpperCase(Locale.ROOT);
+        try {
+            Currency entered = Currency.getInstance(code);
+            if (entered.equals(currency)) {
+                status.set("Rates are relative to " + currency.getCurrencyCode()
+                        + " — enter a foreign currency");
+                return false;
+            }
+            BigDecimal rate = new BigDecimal(fxRate.get().trim());
+            if (rate.signum() <= 0) {
+                status.set("Rate must be positive");
+                return false;
+            }
+            settings.putFxRate(code, rate);
+            manager.exchangeRates().setRate(entered, currency, rate);
+            refreshFxDisplay();
+            status.set("Rate saved: 1 " + code + " = " + rate.toPlainString() + " "
+                    + currency.getCurrencyCode());
+            onDataChanged.run();
+            return true;
+        } catch (IllegalArgumentException e) {
+            // Covers both an unknown ISO code and a non-numeric rate.
+            status.set("Enter a valid ISO currency code (e.g. USD) and a numeric rate");
+            return false;
+        }
+    }
+
+    /** Removes the fixed rate for the currency in the {@code fxCode} field. */
+    public boolean removeFxRate() {
+        String code = fxCode.get().trim().toUpperCase(Locale.ROOT);
+        try {
+            Currency entered = Currency.getInstance(code);
+            settings.removeFxRate(code);
+            manager.exchangeRates().removeRate(entered, currency);
+            refreshFxDisplay();
+            status.set("Rate removed for " + code);
+            onDataChanged.run();
+            return true;
+        } catch (IllegalArgumentException e) {
+            status.set("Enter a valid ISO currency code (e.g. USD)");
+            return false;
+        }
+    }
+
+    private void refreshFxDisplay() {
+        var rates = settings.fxRates();
+        fxRatesDisplay.set(rates.isEmpty()
+                ? "No rates yet"
+                : rates.entrySet().stream()
+                        .map(e -> "1 " + e.getKey() + " = " + e.getValue().toPlainString() + " "
+                                + currency.getCurrencyCode())
+                        .collect(Collectors.joining("\n")));
     }
 
     /** Copies the live database file to {@code target} as a backup snapshot. */
@@ -94,5 +163,8 @@ public final class SettingsViewModel {
 
     public BooleanProperty autoCategorizeProperty() { return autoCategorize; }
     public BooleanProperty budgetAlertsProperty() { return budgetAlerts; }
+    public StringProperty fxCodeProperty() { return fxCode; }
+    public StringProperty fxRateProperty() { return fxRate; }
+    public StringProperty fxRatesDisplayProperty() { return fxRatesDisplay; }
     public StringProperty statusProperty() { return status; }
 }
